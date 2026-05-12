@@ -402,16 +402,24 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
 .team-card {
   background: #fff; border: 1px solid var(--line);
   border-radius: var(--radius-md); overflow: hidden;
-  text-align: center; padding-bottom: 18px;
-  transition: transform .25s, box-shadow .25s;
+  text-align: center; padding-bottom: 22px;
+  transition: transform .25s, box-shadow .25s, border-color .25s;
 }
-.team-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
-.team-card img { width: 100%; aspect-ratio: 1/1; object-fit: cover; }
+.team-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--blue-400); }
+.team-avatar-placeholder {
+  width: 100%; aspect-ratio: 1/1;
+  background: linear-gradient(135deg, var(--navy-800) 0%, var(--navy-700) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Serif Display', serif;
+  font-size: 3.5rem; color: var(--blue-400);
+  letter-spacing: .04em;
+  border-bottom: 3px solid var(--blue-500);
+}
 .team-card h4 {
   font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 700;
-  margin: 14px 0 4px;
+  margin: 16px 0 4px; color: var(--ink-900);
 }
-.team-card small { color: var(--muted); }
+.team-card small { color: var(--muted); font-size: .82rem; }
 
 /* ===== Reviews Marquee ===== */
 .reviews-section { overflow: hidden; padding-bottom: 96px; }
