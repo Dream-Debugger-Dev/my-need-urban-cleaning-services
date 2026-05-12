@@ -110,12 +110,9 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
   padding: 14px 0; gap: 20px;
 }
 .brand { display: inline-flex; align-items: center; gap: 10px; }
-.brand-mark {
+.brand-logo {
   width: 40px; height: 40px; border-radius: 12px;
-  background: var(--grad-primary); color: #fff;
-  display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 800; font-size: .8rem; letter-spacing: .05em;
-  box-shadow: 0 8px 20px rgba(15, 118, 110, 0.35);
+  object-fit: contain;
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.05; }
 .brand-text strong { font-size: 1.02rem; font-weight: 800; }
