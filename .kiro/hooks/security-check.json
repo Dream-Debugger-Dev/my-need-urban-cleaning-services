@@ -1,0 +1,13 @@
+{
+  "name": "Security Check Before Commit",
+  "version": "1.0.0",
+  "description": "Scans staged files for potential secrets, API keys, passwords, and sensitive data before allowing any write operations. Prevents accidental exposure of credentials in a public repo.",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": ["write"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "SECURITY CHECK: Before writing this file, verify it does NOT contain any of the following sensitive data: 1) API keys or tokens (Firebase, Razorpay, Google, etc.) 2) Passwords or secrets 3) Private keys or certificates 4) Phone numbers of team members (except the public business number +919613304724 and +917893304724) 5) Personal email addresses (except the public myneedurban@gmail.com) 6) Firebase project config with real API keys 7) .env file contents. If ANY sensitive data is found, DO NOT proceed with the write. Instead, suggest using environment variables or a .env file (which is gitignored)."
+  }
+}

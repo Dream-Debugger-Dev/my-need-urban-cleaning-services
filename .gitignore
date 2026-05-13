@@ -1,0 +1,82 @@
+# ===========================
+# MyNeedUrban — .gitignore
+# Security & Safety First
+# ===========================
+
+# ── Environment & Secrets ──
+.env
+.env.*
+.env.local
+.env.production
+.env.staging
+*.key
+*.pem
+*.p12
+*.keystore
+*.jks
+firebase-adminsdk*.json
+service-account*.json
+google-services.json
+GoogleService-Info.plist
+
+# ── API Keys & Credentials ──
+**/secrets/
+**/credentials/
+firebase-debug.log
+firebase-debug.*.log
+
+# ── Node.js ──
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ── Flutter / Dart ──
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+.metadata
+
+# ── IDE ──
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── OS Files ──
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# ── Build Outputs ──
+dist/
+build/
+out/
+*.apk
+*.aab
+*.ipa
+
+# ── Firebase ──
+.firebase/
+firebase-debug.log
+
+# ── Logs ──
+logs/
+*.log
+
+# ── Temporary Files ──
+tmp/
+temp/
+*.tmp
