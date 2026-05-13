@@ -1,5 +1,6 @@
 /* ===============================
    MyNeedUrban — main.js
+   Core: header, nav, scrollspy, reveal
    =============================== */
 
 (() => {
@@ -45,7 +46,7 @@
   window.addEventListener('scroll', setActive, { passive: true });
   setActive();
 
-  // Reveal on scroll
+  // Reveal on scroll (IntersectionObserver)
   const io = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
@@ -55,64 +56,4 @@
     });
   }, { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
-
-  // Before / After slider
-  const initBA = (el) => {
-    const beforeWrap = el.querySelector('.ba-before-wrap');
-    const beforeImg = el.querySelector('.ba-before');
-    const handle = el.querySelector('.ba-handle');
-    let rect;
-    let pct = 50;
-
-    const setPct = (p) => {
-      pct = Math.max(0, Math.min(100, p));
-      beforeWrap.style.width = pct + '%';
-      if (handle) handle.style.left = pct + '%';
-      // Keep the "before" image at natural size so it doesn't stretch
-      if (beforeImg) beforeImg.style.width = (100 / (pct / 100 || 0.0001)) + '%';
-    };
-    setPct(50);
-
-    const onMove = (clientX) => {
-      rect = el.getBoundingClientRect();
-      setPct(((clientX - rect.left) / rect.width) * 100);
-    };
-
-    let active = false;
-    const down = (e) => { active = true; onMove(e.touches ? e.touches[0].clientX : e.clientX); };
-    const move = (e) => { if (!active) return; onMove(e.touches ? e.touches[0].clientX : e.clientX); };
-    const up = () => { active = false; };
-
-    el.addEventListener('mousedown', down);
-    el.addEventListener('touchstart', down, { passive: true });
-    window.addEventListener('mousemove', move);
-    window.addEventListener('touchmove', move, { passive: true });
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
-
-    // Also react to hover-drag without click (nicer UX on desktop)
-    el.addEventListener('mousemove', (e) => {
-      if (e.buttons === 1) onMove(e.clientX);
-    });
-  };
-  document.querySelectorAll('[data-ba]').forEach(initBA);
-
-  // Contact form (client-side only for now)
-  const form = document.getElementById('contactForm');
-  const note = document.getElementById('formNote');
-  if (form) {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
-      if (!data.name || !data.phone || !data.service) {
-        note.style.color = '#dc2626';
-        note.textContent = 'Please fill your name, phone and a service.';
-        return;
-      }
-      note.style.color = '';
-      note.textContent = 'Thanks! We received your request and will call you shortly.';
-      form.reset();
-      // TODO: Wire this up to a real backend / email service when ready
-    });
-  }
 })();

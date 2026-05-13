@@ -628,12 +628,7 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
   50% { box-shadow: 0 14px 40px rgba(37, 211, 102, 0.85); }
 }
 
-/* ===== Reveal animation ===== */
-.reveal {
-  opacity: 0; transform: translateY(26px);
-  transition: opacity .7s ease, transform .7s ease;
-}
-.reveal.visible { opacity: 1; transform: none; }
+/* Reveal animation → moved to animations.css */
 
 /* ===== Responsive ===== */
 @media (max-width: 960px) {

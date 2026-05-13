@@ -1,0 +1,49 @@
+/* ===========================
+   MyNeedUrban — animations.css
+   Scroll reveals, marquee, transitions
+   =========================== */
+
+/* ===== Reveal on scroll ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(26px);
+  transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ===== Reviews Marquee ===== */
+.marquee-wrap {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 8%, black 92%, transparent 100%);
+}
+
+.marquee {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  will-change: transform;
+}
+
+.marquee--left  { animation: scroll-left  55s linear infinite; }
+.marquee--right { animation: scroll-right 55s linear infinite; }
+
+.marquee-wrap:hover .marquee { animation-play-state: paused; }
+
+@keyframes scroll-left {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes scroll-right {
+  0%   { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* ===== WhatsApp pulse ===== */
+@keyframes wa-pulse {
+  0%, 100% { box-shadow: 0 12px 30px rgba(37, 211, 102, 0.45); }
+  50% { box-shadow: 0 14px 40px rgba(37, 211, 102, 0.85); }
+}
