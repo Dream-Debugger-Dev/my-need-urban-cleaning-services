@@ -121,7 +121,7 @@ let _step = 0; // 0=catalog, 1=details, 2=address, 3=summary+CTA
 let _quantity = 1;
 let _currentCatalog = null;
 
-const WHATSAPP_NUMBER = '919100000000'; // replace with real number
+const WHATSAPP_NUMBER = '919613304724'; // wa.me format: no + prefix
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getTotal() {
@@ -389,7 +389,7 @@ function renderSummaryStep() {
       <button class="btn btn-whatsapp" id="ctaWhatsapp">
         <i class="fa-brands fa-whatsapp"></i> Send on WhatsApp
       </button>
-      <a class="btn btn-call" href="tel:+919100000000" id="ctaCall">
+      <a class="btn btn-call" href="tel:+919613304724" id="ctaCall">
         <i class="fa-solid fa-phone"></i> Call Us
       </a>
     </div>
