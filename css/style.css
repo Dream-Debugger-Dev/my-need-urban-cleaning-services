@@ -950,3 +950,50 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
 .ci-mrp { font-size: .72rem; color: var(--muted); text-decoration: line-through; }
 .chip-price { display: flex; align-items: center; gap: 6px; }
 .chip-mrp { font-size: .8rem; color: rgba(255,255,255,0.5); text-decoration: line-through; }
+
+/* ── Booking CTA — WhatsApp / Call ── */
+.cta-heading {
+  font-weight: 700; font-size: .85rem; color: var(--ink-700);
+  margin: 18px 0 10px;
+}
+.cta-btns {
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.btn-whatsapp {
+  background: #25d366; color: #fff; border: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px; border-radius: 10px; font-weight: 700;
+  font-size: .9rem; cursor: pointer; flex: 1; justify-content: center;
+}
+.btn-whatsapp:hover { background: #1ebe5d; }
+.btn-call {
+  background: var(--orange-500); color: #fff; border: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 20px; border-radius: 10px; font-weight: 700;
+  font-size: .9rem; cursor: pointer; flex: 1; justify-content: center;
+  text-decoration: none;
+}
+.btn-call:hover { background: var(--orange-600); }
+
+/* ── WhatsApp options panel ── */
+.wa-options {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 14px 16px; margin-top: 14px;
+}
+.wa-options-label {
+  font-size: .8rem; color: var(--muted); margin-bottom: 10px; font-weight: 600;
+}
+.wa-option-btns {
+  display: flex; gap: 10px;
+}
+.wa-option-btns .btn { flex: 1; justify-content: center; }
+
+/* ── Save badge ── */
+.save-badge {
+  background: #dcfce7; color: #16a34a;
+  font-size: .72rem; font-weight: 700;
+  padding: 2px 7px; border-radius: 20px; margin-left: 6px;
+}
+
+/* ── w-100 utility ── */
+.w-100 { width: 100%; }
