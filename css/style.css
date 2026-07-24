@@ -922,3 +922,31 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
 /* OTP section toggle — show verify btn when OTP section visible */
 #loginOtpSection:not([style*="display: none"]) ~ #loginVerifyBtn { display: block !important; }
 #signupOtpSection:not([style*="display: none"]) ~ #signupVerifyBtn { display: block !important; }
+
+/* ── Covered / Not Covered / Addons ── */
+.covered-section {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 18px;
+  font-size: .84rem;
+}
+.covered-title {
+  display: flex; align-items: center; gap: 7px;
+  font-weight: 700; color: var(--ink-900); margin-bottom: 8px;
+  font-size: .82rem;
+}
+.covered-list, .not-covered-list, .addons-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.covered-list li { color: var(--ink-700); display: flex; gap: 8px; align-items: flex-start; }
+.covered-list li i { color: #22c55e; margin-top: 2px; flex-shrink: 0; font-size: .75rem; }
+.not-covered-list li { color: var(--muted); display: flex; gap: 8px; align-items: flex-start; }
+.not-covered-list li i { color: #94a3b8; margin-top: 2px; flex-shrink: 0; font-size: .75rem; }
+.addons-list li { color: var(--orange-600); display: flex; gap: 8px; align-items: flex-start; font-weight: 600; }
+.addons-list li i { color: var(--orange-500); margin-top: 2px; flex-shrink: 0; font-size: .75rem; }
+
+/* ── MRP / Offer price ── */
+.ci-price-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.ci-mrp { font-size: .72rem; color: var(--muted); text-decoration: line-through; }
+.chip-price { display: flex; align-items: center; gap: 6px; }
+.chip-mrp { font-size: .8rem; color: rgba(255,255,255,0.5); text-decoration: line-through; }

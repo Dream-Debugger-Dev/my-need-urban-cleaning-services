@@ -7,25 +7,72 @@ import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config
 import { showToast, openModal } from './auth.js';
 
 // ─── Service Catalog (matches app service_catalog.dart) ──────────────────────
+
+const UNFURNISHED_COVERED = [
+  'Hall, Bedroom, Wardrobe Interior & Exterior wet wiping',
+  'Windows, Fan, AC, Switchboard & Door — Dry & wet wiping',
+  'Cobweb removal & wall dusting',
+  'Kitchen cabinets Interior & Exterior wet scrubbing & wiping',
+  'Chimney Exterior & Filter Cleaning',
+  'Bathroom Deep Cleaning',
+  'Balcony Cleaning',
+  'Floor Deep Cleaning with Machine',
+];
+const UNFURNISHED_NOT_COVERED = [
+  'Glue / paint stains / sticker removal',
+  'Cleaning of terrace & inaccessible areas',
+  'Wet wiping of walls & ceiling',
+];
+
+const FURNISHED_COVERED = [
+  'Hall, Bedroom, Wardrobe Exterior wet wiping',
+  'Windows, Fan, AC, Switchboard & Door — Dry & wet wiping',
+  'Cobweb removal & wall dusting',
+  'Sofa, Carpet and Mattress Dry Vacuum',
+  'Kitchen cabinets Interior & Exterior wet scrubbing & wiping',
+  'Chimney Exterior & Filter Cleaning',
+  'Bathroom Deep Cleaning',
+  'Balcony Cleaning',
+  'Floor Deep Cleaning with Machine',
+];
+const FURNISHED_NOT_COVERED = [
+  'Glue / paint stains / sticker removal',
+  'Cleaning of terrace & inaccessible areas',
+  'Wet wiping of walls & ceiling',
+];
+const FURNISHED_ADDONS = [
+  'Hall & Bedroom Wardrobe Interior wiping — additional price',
+  'Fridge, Microwave and Oven cleaning — additional price',
+  'Sofa, Carpet, Mattress wet shampooing — additional price',
+];
+
 const SERVICE_CATALOG = [
   {
-    id: 'home', title: 'Home Cleaning', icon: 'fa-house-chimney',
-    subtitle: 'Regular & deep home cleaning',
-    children: [
-      { id: 'home_1bhk', title: '1 BHK', icon: 'fa-home', isLeaf: true, isFixed: false, requirementHint: 'Approx. size and number of rooms?' },
-      { id: 'home_2bhk', title: '2 BHK', icon: 'fa-home', isLeaf: true, isFixed: false, requirementHint: 'Approx. size and number of rooms?' },
-      { id: 'home_3bhk', title: '3 BHK', icon: 'fa-home', isLeaf: true, isFixed: false, requirementHint: 'Approx. size and number of rooms?' },
-      { id: 'home_villa', title: 'Villa / Bungalow', icon: 'fa-building', isLeaf: true, isFixed: false, requirementHint: 'Number of floors and rooms?' },
-    ]
-  },
-  {
     id: 'deep', title: 'Deep Cleaning', icon: 'fa-broom',
-    subtitle: 'Move-in, move-out & seasonal',
+    subtitle: 'Unfurnished & Furnished premium packages',
     children: [
-      { id: 'deep_1bhk', title: '1 BHK Deep Clean', icon: 'fa-broom', isLeaf: true, isFixed: false },
-      { id: 'deep_2bhk', title: '2 BHK Deep Clean', icon: 'fa-broom', isLeaf: true, isFixed: false },
-      { id: 'deep_3bhk', title: '3 BHK Deep Clean', icon: 'fa-broom', isLeaf: true, isFixed: false },
-      { id: 'deep_villa', title: 'Villa Deep Clean', icon: 'fa-building', isLeaf: true, isFixed: false },
+      {
+        id: 'deep-unfurnished', title: 'Unfurnished House', icon: 'fa-house-chimney',
+        subtitle: 'Premium deep clean',
+        children: [
+          { id: 'deep-uf-1bhk', title: '1 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 3899, mrp: 5164, priceUnit: 'per visit', covered: UNFURNISHED_COVERED, notCovered: UNFURNISHED_NOT_COVERED },
+          { id: 'deep-uf-2bhk', title: '2 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 4599, mrp: 5695, priceUnit: 'per visit', covered: UNFURNISHED_COVERED, notCovered: UNFURNISHED_NOT_COVERED },
+          { id: 'deep-uf-3bhk', title: '3 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 5599, mrp: 6645, priceUnit: 'per visit', covered: UNFURNISHED_COVERED, notCovered: UNFURNISHED_NOT_COVERED },
+          { id: 'deep-uf-4bhk', title: '4 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 6899, mrp: 7995, priceUnit: 'per visit', covered: UNFURNISHED_COVERED, notCovered: UNFURNISHED_NOT_COVERED },
+          { id: 'deep-uf-5bhk', title: '5 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 8079, mrp: 9080, priceUnit: 'per visit', covered: UNFURNISHED_COVERED, notCovered: UNFURNISHED_NOT_COVERED },
+        ]
+      },
+      {
+        id: 'deep-furnished', title: 'Furnished House', icon: 'fa-couch',
+        subtitle: 'Premium deep clean',
+        children: [
+          { id: 'deep-f-1bhk', title: '1 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 4099, mrp: 5437, priceUnit: 'per visit', covered: FURNISHED_COVERED, notCovered: FURNISHED_NOT_COVERED, addons: FURNISHED_ADDONS },
+          { id: 'deep-f-2bhk', title: '2 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 5099, mrp: 5796, priceUnit: 'per visit', covered: FURNISHED_COVERED, notCovered: FURNISHED_NOT_COVERED, addons: FURNISHED_ADDONS },
+          { id: 'deep-f-3bhk', title: '3 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 5799, mrp: 6296, priceUnit: 'per visit', covered: FURNISHED_COVERED, notCovered: FURNISHED_NOT_COVERED, addons: FURNISHED_ADDONS },
+          { id: 'deep-f-4bhk', title: '4 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 7099, mrp: 8196, priceUnit: 'per visit', covered: FURNISHED_COVERED, notCovered: FURNISHED_NOT_COVERED, addons: FURNISHED_ADDONS },
+          { id: 'deep-f-5bhk', title: '5 BHK', icon: 'fa-home', isLeaf: true, isFixed: true, price: 8299, mrp: 9462, priceUnit: 'per visit', covered: FURNISHED_COVERED, notCovered: FURNISHED_NOT_COVERED, addons: FURNISHED_ADDONS },
+        ]
+      },
     ]
   },
   {
@@ -185,7 +232,10 @@ function renderCatalogHTML(items) {
         ${item.subtitle ? `<small>${item.subtitle}</small>` : ''}
       </div>
       ${item.isLeaf && item.isFixed
-        ? `<span class="ci-price">₹${item.price}</span>`
+        ? `<div class="ci-price-wrap">
+            ${item.mrp ? `<span class="ci-mrp">₹${item.mrp}</span>` : ''}
+            <span class="ci-price">₹${item.price}</span>
+           </div>`
         : item.isLeaf
           ? `<span class="ci-quote">Get Quote</span>`
           : `<i class="fa-solid fa-chevron-right ci-arrow"></i>`}
@@ -214,7 +264,7 @@ function attachCatalogEvents(body) {
 
 function renderScheduleStep() {
   const today = new Date();
-  const hasQty = _selectedService.isFixed && _selectedService.priceUnit?.startsWith('per ');
+  const hasQty = _selectedService.isFixed && _selectedService.priceUnit?.startsWith('per ') && !_selectedService.priceUnit?.includes('visit');
   const unitLabel = hasQty ? _selectedService.priceUnit.replace('per ', '') + 's' : '';
 
   // Build date options (next 14 days)
@@ -227,12 +277,40 @@ function renderScheduleStep() {
     dateOptions += `<option value="${val}" ${_selectedDate === val ? 'selected' : ''}>${label}</option>`;
   }
 
+  // Covered / not covered
+  const covered = _selectedService.covered || [];
+  const notCovered = _selectedService.notCovered || [];
+  const addons = _selectedService.addons || [];
+
   return `
     <div class="service-header-chip">
       <i class="fa-solid ${_selectedService.icon}"></i>
       <span>${_selectedService.title}</span>
-      ${_selectedService.isFixed ? `<strong>₹${_selectedService.price} ${_selectedService.priceUnit || ''}</strong>` : '<strong>Get a Quote</strong>'}
+      ${_selectedService.isFixed
+        ? `<div class="chip-price">
+            ${_selectedService.mrp ? `<s class="chip-mrp">₹${_selectedService.mrp}</s>` : ''}
+            <strong>₹${_selectedService.price}</strong>
+           </div>`
+        : '<strong>Get a Quote</strong>'}
     </div>
+
+    ${covered.length ? `
+    <div class="covered-section">
+      <div class="covered-title"><i class="fa-solid fa-circle-check" style="color:#22c55e;"></i> What's Included</div>
+      <ul class="covered-list">
+        ${covered.map(c => `<li><i class="fa-solid fa-check"></i> ${c}</li>`).join('')}
+      </ul>
+      ${notCovered.length ? `
+      <div class="covered-title" style="margin-top:12px;"><i class="fa-solid fa-circle-xmark" style="color:#94a3b8;"></i> Not Included</div>
+      <ul class="not-covered-list">
+        ${notCovered.map(c => `<li><i class="fa-solid fa-xmark"></i> ${c}</li>`).join('')}
+      </ul>` : ''}
+      ${addons.length ? `
+      <div class="covered-title" style="margin-top:12px;"><i class="fa-solid fa-plus-circle" style="color:var(--orange-500);"></i> Please Note</div>
+      <ul class="addons-list">
+        ${addons.map(a => `<li><i class="fa-solid fa-info-circle"></i> ${a}</li>`).join('')}
+      </ul>` : ''}
+    </div>` : ''}
 
     ${hasQty ? `
     <div class="step-section">
@@ -241,7 +319,7 @@ function renderScheduleStep() {
         <button class="qty-btn" id="qtyMinus"><i class="fa-solid fa-minus"></i></button>
         <span class="qty-val" id="qtyVal">${_quantity}</span>
         <button class="qty-btn" id="qtyPlus"><i class="fa-solid fa-plus"></i></button>
-        ${_selectedService.isFixed ? `<span class="qty-total">Total: ₹${getTotal() || _selectedService.price * _quantity}</span>` : ''}
+        ${_selectedService.isFixed ? `<span class="qty-total">Total: ₹${_selectedService.price * _quantity}</span>` : ''}
       </div>
     </div>` : ''}
 
@@ -343,6 +421,7 @@ function renderConfirmStep() {
     <div class="confirm-total ${_selectedService.isFixed ? 'fixed' : 'quote'}">
       ${_selectedService.isFixed
         ? `<div><span>Total</span><strong>₹${total}</strong></div>
+           ${_selectedService.mrp ? `<div><span>You save</span><strong style="color:#22c55e;">₹${_selectedService.mrp - _selectedService.price}</strong></div>` : ''}
            <small><i class="fa-solid fa-hand-holding-heart"></i> Pay after service — cash or UPI</small>`
         : `<div class="quote-note"><i class="fa-solid fa-comment-dots"></i> We'll call you shortly with your custom quote</div>`}
     </div>
