@@ -4,8 +4,29 @@
    =============================== */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js';
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  setDoc,
+  doc,
+  getDoc,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  updateDoc
+} from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCPcuAit4o2Kc_EQ6QDinIg2VArOhYfikg",
@@ -21,4 +42,13 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export { app, db, auth, collection, addDoc, serverTimestamp };
+export {
+  app, db, auth,
+  // Firestore helpers
+  collection, addDoc, serverTimestamp, setDoc, doc, getDoc,
+  query, where, orderBy, onSnapshot, updateDoc,
+  // Auth helpers
+  RecaptchaVerifier, signInWithPhoneNumber,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  onAuthStateChanged, signOut
+};

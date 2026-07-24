@@ -61,6 +61,8 @@
 
       <div class="header-cta">
         <a href="tel:+919613304724" class="btn btn-ghost"><i class="fa-solid fa-phone"></i> Call Now</a>
+        <button class="btn btn-ghost" id="headerLoginBtn"><i class="fa-solid fa-user"></i> Login</button>
+        <button class="btn btn-outline" id="headerAccountBtn" style="display:none;"><i class="fa-solid fa-circle-user"></i> Account</button>
         <a href="#contact" class="btn btn-primary">Get a Free Quote</a>
         <button class="nav-toggle" id="navToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
       </div>
@@ -137,65 +139,77 @@
       </div>
 
       <div class="services-grid">
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="home">
           <div class="svc-icon"><i class="fa-solid fa-house-chimney"></i></div>
           <h3>Home Cleaning</h3>
           <p>Regular, thorough cleaning that keeps your home fresh week after week.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="office">
           <div class="svc-icon"><i class="fa-solid fa-briefcase"></i></div>
           <h3>Office Cleaning</h3>
           <p>Daily / weekly office cleaning tailored for teams of any size.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="deep">
           <div class="svc-icon"><i class="fa-solid fa-broom"></i></div>
           <h3>Deep Cleaning</h3>
           <p>Top-to-bottom deep clean for move-ins, festivals, or seasonal resets.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="home">
           <div class="svc-icon"><i class="fa-solid fa-warehouse"></i></div>
           <h3>Full House Cleaning</h3>
           <p>Every room, every surface — handled by a dedicated crew.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="home">
           <div class="svc-icon"><i class="fa-solid fa-building"></i></div>
           <h3>Bungalow Cleaning</h3>
           <p>Large-home specialists with the right team &amp; equipment.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="home">
           <div class="svc-icon"><i class="fa-solid fa-crown"></i></div>
           <h3>Villa Cleaning</h3>
           <p>Premium, detail-obsessed villa cleaning — inside &amp; out.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="floor">
           <div class="svc-icon"><i class="fa-solid fa-shoe-prints"></i></div>
           <h3>Floor Cleaning</h3>
           <p>Tile, marble, wood — scrubbed, polished, and sparkling.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="bathroom">
           <div class="svc-icon"><i class="fa-solid fa-bath"></i></div>
           <h3>Bathroom Cleaning</h3>
           <p>Descaling, sanitising, and deep-disinfecting every corner.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="carpet">
           <div class="svc-icon"><i class="fa-solid fa-rug"></i></div>
           <h3>Carpet Cleaning</h3>
           <p>Stain-lifting shampoo &amp; steam clean — safe for all fibres.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="sofa">
           <div class="svc-icon"><i class="fa-solid fa-couch"></i></div>
           <h3>Sofa Cleaning</h3>
           <p>Fabric &amp; leather sofas refreshed, deodorised &amp; protected.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="mattress">
           <div class="svc-icon"><i class="fa-solid fa-bed"></i></div>
           <h3>Mattress Cleaning</h3>
           <p>Dust mite removal &amp; sanitisation for a healthier sleep.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
-        <article class="service-card reveal">
+        <article class="service-card reveal" data-book="kitchen">
           <div class="svc-icon"><i class="fa-solid fa-utensils"></i></div>
           <h3>Kitchen Cleaning</h3>
           <p>Empty, Full, or Kitchen + Fridge + Microwave — pick your combo.</p>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
         </article>
       </div>
     </div>
@@ -639,5 +653,128 @@
   <script src="js/main.js"></script>
   <script src="js/slider.js"></script>
   <script type="module" src="js/form.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/booking.js"></script>
+
+  <!-- ── AUTH MODAL (Login) ── -->
+  <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">
+    <div class="mnu-modal-box">
+      <div class="mnu-modal-head">
+        <img src="assets/logo/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
+        <h3>Welcome Back</h3>
+        <p>Login to your account</p>
+        <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="auth-tabs-wrap">
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" data-tab="loginPhoneTab">Phone</button>
+          <button class="auth-tab-btn" data-tab="loginEmailTab">Email</button>
+        </div>
+        <!-- Phone tab -->
+        <div class="auth-tab-pane active" id="loginPhoneTab">
+          <div class="field">
+            <label>Phone Number</label>
+            <div class="phone-input-wrap">
+              <span class="phone-prefix">🇮🇳 +91</span>
+              <input type="tel" id="loginPhone" placeholder="9876543210" maxlength="10" />
+            </div>
+          </div>
+          <div class="field" id="loginOtpSection" style="display:none;">
+            <label>Enter OTP</label>
+            <input type="text" id="loginOtp" placeholder="6-digit OTP" maxlength="6" />
+          </div>
+          <p class="auth-error" id="loginError"></p>
+          <button class="btn btn-primary w-100" id="loginSendOtpBtn">Send OTP</button>
+          <button class="btn btn-outline w-100" id="loginVerifyBtn" style="display:none;margin-top:8px;">Verify & Login</button>
+        </div>
+        <!-- Email tab -->
+        <div class="auth-tab-pane" id="loginEmailTab">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="you@email.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="Your password" />
+          </div>
+          <p class="auth-error" id="loginError2"></p>
+          <button class="btn btn-primary w-100" id="loginEmailBtn">Login</button>
+        </div>
+      </div>
+      <p class="auth-switch">Don't have an account? <a href="#" id="openSignupLink">Sign Up</a></p>
+    </div>
+  </div>
+
+  <!-- ── AUTH MODAL (Signup) ── -->
+  <div class="mnu-modal" id="signupModal" role="dialog" aria-label="Sign Up">
+    <div class="mnu-modal-box">
+      <div class="mnu-modal-head">
+        <img src="assets/logo/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
+        <h3>Create Account</h3>
+        <p>Join MyNeedUrban today</p>
+        <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="auth-tabs-wrap">
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" data-tab="signupPhoneTab">Phone</button>
+          <button class="auth-tab-btn" data-tab="signupEmailTab">Email</button>
+        </div>
+        <!-- Phone tab -->
+        <div class="auth-tab-pane active" id="signupPhoneTab">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="signupName" placeholder="Your full name" />
+          </div>
+          <div class="field">
+            <label>Phone Number</label>
+            <div class="phone-input-wrap">
+              <span class="phone-prefix">🇮🇳 +91</span>
+              <input type="tel" id="signupPhone" placeholder="9876543210" maxlength="10" />
+            </div>
+          </div>
+          <div class="field" id="signupOtpSection" style="display:none;">
+            <label>Enter OTP</label>
+            <input type="text" id="signupOtp" placeholder="6-digit OTP" maxlength="6" />
+          </div>
+          <p class="auth-error" id="signupError"></p>
+          <button class="btn btn-primary w-100" id="signupSendOtpBtn">Send OTP</button>
+          <button class="btn btn-outline w-100" id="signupVerifyBtn" style="display:none;margin-top:8px;">Verify & Create Account</button>
+        </div>
+        <!-- Email tab -->
+        <div class="auth-tab-pane" id="signupEmailTab">
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="signupEmailName" placeholder="Your full name" />
+          </div>
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="signupEmail" placeholder="you@email.com" />
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="password" id="signupPassword" placeholder="Min 6 characters" />
+          </div>
+          <p class="auth-error" id="signupError2"></p>
+          <button class="btn btn-primary w-100" id="signupEmailBtn">Create Account</button>
+        </div>
+      </div>
+      <p class="auth-switch">Already have an account? <a href="#" id="openLoginLink">Login</a></p>
+    </div>
+  </div>
+
+  <!-- ── BOOKING MODAL ── -->
+  <div class="mnu-modal" id="bookingModal" role="dialog" aria-label="Book a Service">
+    <div class="mnu-modal-box mnu-modal-box--wide">
+      <div class="mnu-modal-head">
+        <h3 class="booking-title">Book a Service</h3>
+        <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="booking-progress"></div>
+      <div class="booking-body"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="mnuToast"></div>
 </body>
 </html>

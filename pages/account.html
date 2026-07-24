@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Account — MyNeedUrban Cleaning Services</title>
+  <link rel="icon" type="image/png" href="../assets/favicon/MyNeedUrban_favicon_v3.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .account-page { max-width: 860px; margin: 0 auto; padding: 100px 24px 80px; }
+    .account-header {
+      display: flex; align-items: center; gap: 20px;
+      background: var(--navy-900); border-radius: var(--radius-lg);
+      padding: 28px; margin-bottom: 32px;
+      border: 1px solid rgba(30,144,255,0.15);
+    }
+    .account-avatar {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: var(--grad-blue); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem; font-weight: 800; flex-shrink: 0;
+    }
+    .account-info strong { display: block; font-size: 1.15rem; font-weight: 800; color: #fff; }
+    .account-info small { color: var(--blue-400); font-size: .85rem; }
+    .account-badge {
+      margin-left: auto;
+      background: var(--blue-100); color: var(--blue-600);
+      font-size: .72rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
+      text-transform: uppercase;
+    }
+
+    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--ink-900); }
+    .booking-card {
+      background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius-md); padding: 18px 20px;
+      margin-bottom: 12px; transition: box-shadow .2s;
+    }
+    .booking-card:hover { box-shadow: var(--shadow-sm); }
+    .bc-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .bc-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--blue-100); color: var(--blue-600);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .bc-name { font-weight: 700; font-size: .95rem; }
+    .bc-path { color: var(--muted); font-size: .8rem; }
+    .bc-status {
+      margin-left: auto; font-size: .72rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 999px; text-transform: uppercase;
+    }
+    .status-pending { background: #fff0e0; color: var(--orange-600); }
+    .status-confirmed { background: #dbeeff; color: var(--blue-600); }
+    .status-inProgress { background: #dbeeff; color: var(--blue-600); }
+    .status-completed { background: #dcfce7; color: #16a34a; }
+    .status-cancelled { background: #fee2e2; color: #dc2626; }
+    .bc-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: .82rem; color: var(--muted); }
+    .bc-meta span { display: flex; align-items: center; gap: 5px; }
+    .bc-amount { font-weight: 700; color: var(--blue-600); }
+
+    .empty-state { text-align: center; padding: 60px 0; color: var(--muted); }
+    .empty-state i { font-size: 3rem; margin-bottom: 14px; display: block; opacity: .3; }
+    .empty-state p { margin-bottom: 20px; }
+
+    .account-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 32px; }
+    .account-link {
+      display: flex; align-items: center; gap: 12px;
+      background: #fff; border: 1px solid var(--line);
+      border-radius: var(--radius-sm); padding: 14px 16px;
+      color: var(--ink-700); font-weight: 600; font-size: .9rem;
+      transition: border-color .2s, color .2s;
+    }
+    .account-link:hover { border-color: var(--blue-400); color: var(--blue-600); }
+    .account-link i { color: var(--blue-500); width: 18px; text-align: center; }
+
+    .logout-btn {
+      margin-top: 20px; width: 100%;
+      background: transparent; border: 1.5px solid #fee2e2;
+      color: #dc2626; border-radius: 999px; padding: 12px;
+      font-family: inherit; font-weight: 700; cursor: pointer;
+      transition: background .2s;
+    }
+    .logout-btn:hover { background: #fee2e2; }
+
+    #loadingState { text-align: center; padding: 40px; color: var(--muted); }
+    #notLoggedIn { text-align: center; padding: 80px 0; }
+    #notLoggedIn h2 { margin-bottom: 8px; }
+    #notLoggedIn p { color: var(--muted); margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <!-- Simple header -->
+  <header class="site-header" id="siteHeader">
+    <div class="container header-inner">
+      <a href="../index.html" class="brand">
+        <img src="../assets/logo/MyNeedUrban_logo_v3.png" alt="MyNeedUrban Logo" class="brand-logo" />
+        <span class="brand-text"><strong>MyNeedUrban</strong><small>Cleaning Services</small></span>
+      </a>
+      <div class="header-cta">
+        <a href="../index.html" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="account-page">
+
+    <!-- Not logged in -->
+    <div id="notLoggedIn" style="display:none;">
+      <i class="fa-solid fa-user-lock" style="font-size:3rem;color:var(--blue-400);margin-bottom:16px;display:block;"></i>
+      <h2>Please log in to view your account</h2>
+      <p>Sign in to see your bookings and profile</p>
+      <a href="../index.html" class="btn btn-primary"><i class="fa-solid fa-arrow-left"></i> Go to Homepage</a>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState">
+      <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:var(--blue-400);"></i>
+      <p style="margin-top:12px;">Loading your account...</p>
+    </div>
+
+    <!-- Account content -->
+    <div id="accountContent" style="display:none;">
+      <!-- Profile header -->
+      <div class="account-header">
+        <div class="account-avatar" id="accountAvatar">U</div>
+        <div class="account-info">
+          <strong id="accountName">User</strong>
+          <small id="accountContact">—</small>
+        </div>
+        <span class="account-badge" id="accountRole">Customer</span>
+      </div>
+
+      <!-- Bookings -->
+      <p class="section-title"><i class="fa-solid fa-receipt" style="color:var(--blue-500);margin-right:6px;"></i> My Bookings</p>
+      <div id="bookingsList">
+        <div class="empty-state">
+          <i class="fa-solid fa-box-open"></i>
+          <p>No bookings yet</p>
+          <a href="../index.html#services" class="btn btn-primary">Book a Service</a>
+        </div>
+      </div>
+
+      <!-- Quick links -->
+      <div class="account-links">
+        <a href="tel:+919613304724" class="account-link"><i class="fa-solid fa-phone"></i> Call Us</a>
+        <a href="https://wa.me/919613304724" target="_blank" rel="noopener" class="account-link"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+        <a href="terms.html" class="account-link"><i class="fa-solid fa-file-contract"></i> Terms</a>
+        <a href="privacy.html" class="account-link"><i class="fa-solid fa-shield-halved"></i> Privacy</a>
+      </div>
+
+      <button class="logout-btn" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js';
+    import { getFirestore, collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPcuAit4o2Kc_EQ6QDinIg2VArOhYfikg",
+      authDomain: "myneedurban-ec1c9.firebaseapp.com",
+      projectId: "myneedurban-ec1c9",
+      storageBucket: "myneedurban-ec1c9.firebasestorage.app",
+      messagingSenderId: "938179747414",
+      appId: "1:938179747414:web:b60e962c9521f3fc96e5f7"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const loadingEl = document.getElementById('loadingState');
+    const notLoggedEl = document.getElementById('notLoggedIn');
+    const contentEl = document.getElementById('accountContent');
+
+    onAuthStateChanged(auth, async (user) => {
+      loadingEl.style.display = 'none';
+      if (!user) {
+        notLoggedEl.style.display = 'block';
+        return;
+      }
+      contentEl.style.display = 'block';
+
+      // Load profile
+      const snap = await getDoc(doc(db, 'users', user.uid));
+      const profile = snap.data() || {};
+      const name = profile.name || user.displayName || 'User';
+      const initials = name.substring(0, Math.min(2, name.length)).toUpperCase();
+      document.getElementById('accountAvatar').textContent = initials;
+      document.getElementById('accountName').textContent = name;
+      document.getElementById('accountContact').textContent = profile.phone || user.phoneNumber || user.email || '';
+      document.getElementById('accountRole').textContent = (profile.role || 'customer').toUpperCase();
+
+      // Load bookings
+      const q = query(
+        collection(db, 'bookings'),
+        where('customerId', '==', user.uid),
+        orderBy('createdAt', 'desc')
+      );
+      onSnapshot(q, (snapshot) => {
+        const docs = snapshot.docs;
+        const list = document.getElementById('bookingsList');
+        if (docs.length === 0) {
+          list.innerHTML = `<div class="empty-state">
+            <i class="fa-solid fa-box-open"></i>
+            <p>No bookings yet</p>
+            <a href="../index.html#services" class="btn btn-primary">Book a Service</a>
+          </div>`;
+          return;
+        }
+        list.innerHTML = docs.map(d => {
+          const b = d.data();
+          const status = b.status || 'pending';
+          const statusClass = 'status-' + status;
+          const dateStr = b.scheduledDate
+            ? new Date(b.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+            : '';
+          return `
+            <div class="booking-card">
+              <div class="bc-top">
+                <div class="bc-icon"><i class="fa-solid fa-spray-can-sparkles"></i></div>
+                <div>
+                  <div class="bc-name">${b.serviceName || '-'}</div>
+                  <div class="bc-path">${b.servicePath || b.packageType || ''}</div>
+                </div>
+                <span class="bc-status ${statusClass}">${status}</span>
+              </div>
+              <div class="bc-meta">
+                ${dateStr ? `<span><i class="fa-solid fa-calendar"></i> ${dateStr}</span>` : ''}
+                ${b.timeSlot ? `<span><i class="fa-solid fa-clock"></i> ${b.timeSlot}</span>` : ''}
+                ${b.address ? `<span><i class="fa-solid fa-location-dot"></i> ${b.address.substring(0, 40)}${b.address.length > 40 ? '…' : ''}</span>` : ''}
+                ${b.amount > 0
+                  ? `<span class="bc-amount">₹${b.amount} · Pay after service</span>`
+                  : `<span class="bc-amount">Quote requested</span>`}
+              </div>
+              ${status === 'pending' ? `<div style="margin-top:10px;"><button class="btn btn-outline" style="font-size:.8rem;padding:7px 14px;" onclick="cancelBooking('${d.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button></div>` : ''}
+            </div>
+          `;
+        }).join('');
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+        window.location.href = '../index.html';
+      });
+    });
+
+    window.cancelBooking = async (docId) => {
+      if (!confirm('Cancel this booking?')) return;
+      const { doc: firestoreDoc, updateDoc: firestoreUpdate } = await import('https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js');
+      await firestoreUpdate(firestoreDoc(db, 'bookings', docId), { status: 'cancelled' });
+    };
+  </script>
+</body>
+</html>
