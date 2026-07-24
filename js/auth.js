@@ -229,8 +229,9 @@ document.addEventListener('DOMContentLoaded', () => {
   loginEmailBtn?.addEventListener('click', () => {
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPassword').value;
-    if (!email || !pass) { loginError.textContent = 'Fill in email and password'; return; }
-    emailLogin(email, pass, loginError);
+    const loginError2 = document.getElementById('loginError2');
+    if (!email || !pass) { loginError2.textContent = 'Fill in email and password'; return; }
+    emailLogin(email, pass, loginError2);
   });
 
   // ── SIGNUP MODAL ──
@@ -265,9 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const name = document.getElementById('signupEmailName').value.trim();
     const email = document.getElementById('signupEmail').value.trim();
     const pass = document.getElementById('signupPassword').value;
-    if (!name || !email || !pass) { signupError.textContent = 'Fill in all fields'; return; }
-    if (pass.length < 6) { signupError.textContent = 'Password must be at least 6 characters'; return; }
-    emailSignup(name, email, pass, signupError);
+    const signupError2 = document.getElementById('signupError2');
+    if (!name || !email || !pass) { signupError2.textContent = 'Fill in all fields'; return; }
+    if (pass.length < 6) { signupError2.textContent = 'Password must be at least 6 characters'; return; }
+    emailSignup(name, email, pass, signupError2);
   });
 
   // Logout
