@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="independence">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,6 +18,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/animations.css" />
+  <!-- Seasonal: Independence Day theme (additive override layer — see css/themes/README.md) -->
+  <link rel="stylesheet" href="css/independence.css" />
 
   <script type="application/ld+json">
   {
@@ -36,6 +37,21 @@
   </script>
 </head>
 <body>
+
+  <!-- ── SEASONAL: tricolour scroll progress ── -->
+  <div class="id-progress"></div>
+
+  <!-- ── SEASONAL: Independence Day banner ── -->
+  <div class="id-banner" id="idBanner">
+    <div class="id-banner-inner">
+      <span class="id-banner-tag"><span class="chakra"></span> Independence Day</span>
+      <span>Celebrate freedom with a spotless home — <b>Freedom Offer</b> on all deep-cleaning packages.</span>
+      <span class="id-countdown" id="idCountdown"></span>
+      <button class="id-banner-close" id="idBannerClose" aria-label="Dismiss announcement">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+  </div>
 
   <!-- HEADER -->
   <header class="site-header" id="siteHeader">
@@ -72,9 +88,20 @@
   <!-- HERO -->
   <section id="home" class="hero">
     <div class="hero-bg"></div>
+    <!-- SEASONAL: fireworks + tricolour petals -->
+    <canvas id="idCanvas" aria-hidden="true"></canvas>
+    <!-- SEASONAL: flying kites -->
+    <span class="id-kite k1" aria-hidden="true"></span>
+    <span class="id-kite k2" aria-hidden="true"></span>
+    <span class="id-kite k3" aria-hidden="true"></span>
     <div class="container hero-grid">
       <div class="hero-copy reveal">
-        <span class="eyebrow"><i class="fa-solid fa-leaf"></i> Verified · Eco-friendly · Trusted</span>
+        <span class="eyebrow"><span class="chakra"></span> Verified · Eco-friendly · Trusted</span>
+        <!-- SEASONAL: freedom offer ribbon -->
+        <div class="id-hero-ribbon">
+          <span class="id-off">Freedom Offer</span>
+          <span>Independence Day special — book today</span>
+        </div>
         <h1>A Cleaner Home,<br /><span class="accent">A Happier You.</span></h1>
         <p class="lead">Professional home, office &amp; deep cleaning by a verified team — serving Nanakramguda and 15 km around. Same-day slots, transparent pricing, spotless results.</p>
         <div class="hero-ctas">
@@ -650,7 +677,15 @@
     <i class="fa-brands fa-whatsapp"></i>
   </a>
 
+  <!-- ── SEASONAL: theme switcher (Independence ⇄ Classic) ── -->
+  <button class="id-theme-toggle" id="idThemeToggle" aria-pressed="true"
+          title="Switch between the Independence Day and classic themes">
+    <span class="chakra" aria-hidden="true"></span>
+    <span class="id-tt-label">Independence</span>
+  </button>
+
   <script src="js/main.js"></script>
+  <script src="js/independence.js" defer></script>
   <script src="js/slider.js"></script>
   <script type="module" src="js/form.js"></script>
   <script type="module" src="js/auth.js"></script>
