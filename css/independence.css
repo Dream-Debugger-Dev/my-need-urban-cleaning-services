@@ -1,0 +1,592 @@
+/* ==========================================================================
+   MyNeedUrban — independence.css
+   Indian Independence Day seasonal theme (Saffron · White · India Green)
+
+   ADDITIVE OVERRIDE LAYER. Every rule is scoped to [data-theme="independence"]
+   so the original brand theme is untouched and instantly restorable.
+   See css/themes/README.md
+   ========================================================================== */
+
+/* ── Tricolour tokens ───────────────────────────────────────────────────── */
+[data-theme="independence"] {
+  --saffron:      #ff9933;
+  --saffron-deep: #e97b0c;
+  --saffron-soft: #fff4e6;
+  --green:        #138808;
+  --green-deep:   #0b6205;
+  --green-soft:   #eaf7e8;
+  --chakra:       #000080;
+  --chakra-light: #1a1aa6;
+
+  /* Remap brand tokens → tricolour */
+  --blue-600:   var(--chakra);
+  --blue-500:   var(--saffron);
+  --blue-400:   var(--saffron);
+  --blue-100:   var(--saffron-soft);
+  --orange-600: var(--green-deep);
+  --orange-500: var(--green);
+  --orange-400: var(--green);
+  --orange-100: var(--green-soft);
+
+  --navy-950: #08103a;
+  --navy-900: #0b1547;
+  --navy-800: #101d5c;
+  --navy-700: #1b2a75;
+
+  --surface: #fffdf8;
+
+  --grad-primary: linear-gradient(100deg, #ff9933 0%, #ff9933 28%, #ffffff 50%, #138808 72%, #138808 100%);
+  --grad-blue:    linear-gradient(135deg, #ff9933 0%, #e97b0c 100%);
+  --grad-orange:  linear-gradient(135deg, #138808 0%, #0b6205 100%);
+  --grad-hero:    linear-gradient(160deg, #08103a 0%, #0b1547 55%, #101d5c 100%);
+  --grad-soft:    linear-gradient(180deg, #fff8ee 0%, #f2fbf0 100%);
+  /* Tiranga = HORIZONTAL bands: saffron top, white middle, green bottom (180deg) */
+  --grad-tri:     linear-gradient(180deg, #ff9933 0 33.33%, #ffffff 33.33% 66.66%, #138808 66.66% 100%);
+
+  --shadow-lg:     0 30px 70px rgba(255, 153, 51, .22);
+  --shadow-orange: 0 12px 30px rgba(19, 136, 8, .32);
+}
+
+/* ── Tricolour edge + scroll progress ───────────────────────────────────── */
+[data-theme="independence"] body::before {
+  content: '';
+  position: fixed; inset: 0 0 auto 0; height: 5px; z-index: 9999;
+  background: var(--grad-tri);
+  pointer-events: none;
+}
+[data-theme="independence"] .id-progress {
+  position: fixed; top: 5px; left: 0; height: 3px; width: 0;
+  background: var(--grad-tri);
+  box-shadow: 0 0 12px rgba(255, 153, 51, .9);
+  z-index: 9999; transition: width .1s linear; pointer-events: none;
+}
+
+/* ── Festive announcement banner ────────────────────────────────────────── */
+[data-theme="independence"] .id-banner {
+  position: relative; z-index: 60;
+  margin-top: 5px;
+  background: linear-gradient(100deg, #08103a, #101d5c 55%, #08103a);
+  color: #fff; overflow: hidden;
+  border-bottom: 1px solid rgba(255, 153, 51, .35);
+}
+[data-theme="independence"] .id-banner::after {
+  content: ''; position: absolute; inset: 0;
+  background: var(--grad-tri); opacity: .08; pointer-events: none;
+}
+[data-theme="independence"] .id-banner-inner {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  flex-wrap: wrap; padding: 9px 46px 9px 16px;
+  font-size: .84rem; font-weight: 600; text-align: center;
+}
+[data-theme="independence"] .id-banner-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fffdf8; color: var(--chakra);
+  font-weight: 800; font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+  padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+  border: 2px solid transparent;
+  background-image: linear-gradient(#fffdf8, #fffdf8), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+}
+[data-theme="independence"] .id-banner b { color: var(--saffron); }
+[data-theme="independence"] .id-countdown {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-variant-numeric: tabular-nums;
+}
+[data-theme="independence"] .id-cd-box {
+  background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 153, 51, .4);
+  border-radius: 7px; padding: 2px 7px; min-width: 34px;
+  font-weight: 800; font-size: .8rem; color: #fff;
+}
+[data-theme="independence"] .id-cd-box small {
+  display: block; font-size: .5rem; font-weight: 700; letter-spacing: .06em;
+  color: rgba(255, 255, 255, .65); text-transform: uppercase;
+}
+[data-theme="independence"] .id-banner-close {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: rgba(255, 255, 255, .12); color: #fff; border: 0;
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  display: grid; place-items: center; font-size: .8rem; transition: background .2s;
+}
+[data-theme="independence"] .id-banner-close:hover { background: rgba(255, 153, 51, .8); }
+
+/* ── Ashoka Chakra (24 spokes, pure CSS) ────────────────────────────────── */
+[data-theme="independence"] .chakra {
+  position: relative; width: 1em; height: 1em; border-radius: 50%;
+  border: .075em solid var(--chakra); flex: 0 0 auto;
+  background:
+    repeating-conic-gradient(from 0deg, var(--chakra) 0deg .9deg, transparent .9deg 15deg),
+    radial-gradient(circle, var(--chakra) 0 12%, transparent 12%);
+  animation: chakra-spin 9s linear infinite;
+}
+[data-theme="independence"] .chakra::after {
+  content: ''; position: absolute; inset: 22%;
+  border: .055em solid var(--chakra); border-radius: 50%;
+}
+@keyframes chakra-spin { to { transform: rotate(360deg); } }
+
+/* ── Waving tricolour flag (pure CSS) ───────────────────────────────────── */
+[data-theme="independence"] .id-flag {
+  position: relative; width: 116px; height: 78px; border-radius: 5px;
+  overflow: hidden; box-shadow: 0 12px 30px rgba(8, 16, 58, .35);
+  background: linear-gradient(180deg, #ff9933 0 33.33%, #fff 33.33% 66.66%, #138808 66.66% 100%);
+  animation: flag-wave 4.5s ease-in-out infinite;
+  transform-origin: left center;
+}
+[data-theme="independence"] .id-flag .chakra {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  font-size: 24px; animation-duration: 7s;
+}
+[data-theme="independence"] .id-flag::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.55) 48%, transparent 62%);
+  background-size: 260% 100%;
+  animation: flag-sheen 4.5s ease-in-out infinite;
+}
+@keyframes flag-wave {
+  0%,100% { transform: perspective(600px) rotateY(0deg) skewY(0deg); }
+  25%     { transform: perspective(600px) rotateY(-7deg) skewY(1.3deg); }
+  50%     { transform: perspective(600px) rotateY(0deg) skewY(0deg); }
+  75%     { transform: perspective(600px) rotateY(7deg) skewY(-1.3deg); }
+}
+@keyframes flag-sheen {
+  0%   { background-position: 140% 0; }
+  100% { background-position: -60% 0; }
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .site-header {
+  border-bottom: 1px solid rgba(255, 153, 51, .22);
+  background: rgba(255, 253, 248, .88);
+  backdrop-filter: blur(14px) saturate(1.3);
+}
+[data-theme="independence"] .site-header.scrolled {
+  box-shadow: 0 10px 34px rgba(255, 153, 51, .16);
+}
+[data-theme="independence"] .site-header::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+  background: var(--grad-tri); opacity: .85;
+}
+[data-theme="independence"] .nav a.active { color: var(--saffron-deep); }
+[data-theme="independence"] .nav a::after { background: var(--grad-tri); }
+[data-theme="independence"] .brand-logo {
+  filter: drop-shadow(0 3px 8px rgba(255, 153, 51, .5));
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .hero { position: relative; overflow: hidden; }
+[data-theme="independence"] .hero-bg {
+  background:
+    radial-gradient(1100px 520px at 12% -10%, rgba(255, 153, 51, .34), transparent 60%),
+    radial-gradient(900px 460px at 88% 8%, rgba(19, 136, 8, .3), transparent 62%),
+    radial-gradient(700px 420px at 50% 110%, rgba(255, 255, 255, .16), transparent 60%),
+    var(--grad-hero);
+}
+/* Festive canvas (fireworks + petals) sits above bg, below content */
+[data-theme="independence"] #idCanvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 1; opacity: .95;
+}
+[data-theme="independence"] .hero .container { position: relative; z-index: 3; }
+
+[data-theme="independence"] .hero-copy h1,
+[data-theme="independence"] .hero-copy .lead,
+[data-theme="independence"] .hero-copy .trust-strip li { color: #fff; }
+[data-theme="independence"] .hero-copy .lead { color: rgba(255, 255, 255, .82); }
+
+[data-theme="independence"] .hero .eyebrow {
+  background: rgba(255, 255, 255, .1);
+  color: #fff;
+  border: 1px solid rgba(255, 153, 51, .5);
+  backdrop-filter: blur(6px);
+}
+[data-theme="independence"] .hero .eyebrow .chakra { font-size: 15px; }
+
+/* Freedom-sale ribbon on the hero */
+[data-theme="independence"] .id-hero-ribbon {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin: 0 0 18px;
+  padding: 9px 18px; border-radius: 999px;
+  background: linear-gradient(100deg, rgba(255,153,51,.2), rgba(255,255,255,.12), rgba(19,136,8,.2));
+  border: 1px solid rgba(255, 153, 51, .45);
+  color: #fff; font-weight: 700; font-size: .85rem;
+  box-shadow: 0 8px 26px rgba(255, 153, 51, .2);
+}
+[data-theme="independence"] .id-hero-ribbon .id-off {
+  background: var(--grad-tri); color: #08103a;
+  font-weight: 900; padding: 2px 10px; border-radius: 999px; font-size: .8rem;
+}
+
+/* Tricolour shimmer headline */
+[data-theme="independence"] .hero-copy h1 .accent,
+[data-theme="independence"] .accent {
+  background: linear-gradient(100deg, #ff9933 0%, #ffd9b0 22%, #ffffff 45%, #b9f0b3 68%, #138808 100%);
+  background-size: 220% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: tri-shimmer 6s linear infinite;
+}
+@keyframes tri-shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+[data-theme="independence"] .hero-card {
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fff, #fff), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+  box-shadow: 0 26px 60px rgba(8, 16, 58, .4);
+}
+[data-theme="independence"] .hero-card.hc-1 { animation: float-y 7s ease-in-out infinite; }
+[data-theme="independence"] .hero-card.hc-2 { animation: float-y 7s ease-in-out infinite .9s; }
+@keyframes float-y {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-13px); }
+}
+
+[data-theme="independence"] .float-badge {
+  border: 1px solid rgba(255, 153, 51, .4);
+  box-shadow: 0 16px 40px rgba(255, 153, 51, .28);
+}
+[data-theme="independence"] .float-badge .fb-icon { background: var(--grad-blue); color: #fff; }
+[data-theme="independence"] .trust-strip li i { color: var(--saffron); }
+
+/* Flying kites (patang) — Independence Day tradition */
+[data-theme="independence"] .id-kite {
+  position: absolute; z-index: 2; width: 26px; height: 26px;
+  pointer-events: none; opacity: .92;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .3));
+}
+[data-theme="independence"] .id-kite::before {
+  content: ''; position: absolute; inset: 0; border-radius: 3px 50% 3px 50%;
+  background: var(--k, var(--saffron)); transform: rotate(45deg);
+}
+[data-theme="independence"] .id-kite::after {
+  content: ''; position: absolute; left: 50%; top: 100%;
+  width: 1px; height: 26px; background: rgba(255, 255, 255, .5);
+}
+[data-theme="independence"] .id-kite.k1 { --k: #ff9933; top: 14%; animation: kite-fly 19s linear infinite; }
+[data-theme="independence"] .id-kite.k2 { --k: #ffffff; top: 30%; animation: kite-fly 25s linear infinite 4s; }
+[data-theme="independence"] .id-kite.k3 { --k: #138808; top: 21%; animation: kite-fly 22s linear infinite 9s; }
+@keyframes kite-fly {
+  0%   { left: -8%;  transform: translateY(0) rotate(-8deg); }
+  25%  {              transform: translateY(-34px) rotate(9deg); }
+  50%  {              transform: translateY(14px) rotate(-6deg); }
+  75%  {              transform: translateY(-24px) rotate(10deg); }
+  100% { left: 108%; transform: translateY(0) rotate(-8deg); }
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .btn-primary {
+  background: var(--grad-blue); color: #fff;
+  box-shadow: 0 12px 30px rgba(255, 153, 51, .42);
+  position: relative; overflow: hidden;
+}
+[data-theme="independence"] .btn-primary::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.45) 50%, transparent 65%);
+  background-size: 240% 100%; background-position: 140% 0;
+  animation: btn-sheen 3.4s ease-in-out infinite;
+}
+@keyframes btn-sheen {
+  0%, 70% { background-position: 140% 0; }
+  100%    { background-position: -60% 0; }
+}
+[data-theme="independence"] .btn-primary:hover {
+  box-shadow: 0 18px 44px rgba(255, 153, 51, .62);
+}
+[data-theme="independence"] .btn-outline:hover {
+  border-color: var(--green); color: var(--green-deep);
+}
+[data-theme="independence"] .hero .btn-outline {
+  background: rgba(255, 255, 255, .1); color: #fff;
+  border-color: rgba(255, 255, 255, .38); backdrop-filter: blur(6px);
+}
+[data-theme="independence"] .hero .btn-outline:hover {
+  background: rgba(255, 255, 255, .2); color: #fff; border-color: var(--saffron);
+}
+
+/* ── Eyebrows & section heads ───────────────────────────────────────────── */
+[data-theme="independence"] .eyebrow {
+  background: var(--saffron-soft); color: var(--saffron-deep);
+  border: 1px solid rgba(255, 153, 51, .3);
+}
+[data-theme="independence"] .section-head h2 { position: relative; }
+[data-theme="independence"] .section-head::after {
+  content: ''; display: block; width: 94px; height: 4px; margin: 16px auto 0;
+  border-radius: 999px; background: var(--grad-tri);
+  box-shadow: 0 2px 10px rgba(255, 153, 51, .45);
+}
+[data-theme="independence"] .section-alt { background: var(--grad-soft); }
+
+/* Subtle chakra watermark on alternating sections */
+[data-theme="independence"] .section-alt { position: relative; overflow: hidden; }
+[data-theme="independence"] .section-alt::before {
+  content: ''; position: absolute; right: -110px; top: -110px;
+  width: 340px; height: 340px; border-radius: 50%; pointer-events: none;
+  opacity: .05;
+  background: repeating-conic-gradient(from 0deg, var(--chakra) 0deg 1.4deg, transparent 1.4deg 15deg);
+  animation: chakra-spin 70s linear infinite;
+}
+
+/* ── Cards: service / why / team ────────────────────────────────────────── */
+[data-theme="independence"] .service-card,
+[data-theme="independence"] .why-card,
+[data-theme="independence"] .team-card {
+  position: relative; overflow: hidden;
+  border-color: rgba(255, 153, 51, .22);
+  transition: transform .3s cubic-bezier(.2,.7,.3,1), box-shadow .3s, border-color .3s;
+}
+[data-theme="independence"] .service-card::before,
+[data-theme="independence"] .why-card::before,
+[data-theme="independence"] .team-card::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  background: var(--grad-tri); transform: scaleX(0); transform-origin: left;
+  transition: transform .45s cubic-bezier(.2,.7,.3,1);
+}
+[data-theme="independence"] .service-card:hover::before,
+[data-theme="independence"] .why-card:hover::before,
+[data-theme="independence"] .team-card:hover::before { transform: scaleX(1); }
+[data-theme="independence"] .service-card:hover,
+[data-theme="independence"] .why-card:hover,
+[data-theme="independence"] .team-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(255, 153, 51, .5);
+  box-shadow: 0 24px 54px rgba(255, 153, 51, .22);
+}
+[data-theme="independence"] .svc-icon {
+  background: linear-gradient(135deg, var(--saffron-soft), var(--green-soft));
+  color: var(--saffron-deep);
+  border: 1px solid rgba(255, 153, 51, .28);
+  transition: transform .35s, background .35s, color .35s;
+}
+[data-theme="independence"] .service-card:hover .svc-icon {
+  background: var(--grad-blue); color: #fff;
+  transform: rotate(-8deg) scale(1.08);
+}
+[data-theme="independence"] .why-card i { color: var(--saffron); }
+[data-theme="independence"] .why-card:hover i { color: var(--green); }
+[data-theme="independence"] .svc-book-btn { color: var(--saffron-deep); }
+/* Tiranga ring + clean centre so initials stay legible (no flag-as-backdrop) */
+[data-theme="independence"] .team-avatar-placeholder {
+  color: var(--chakra); font-weight: 800;
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fffdf8, #fffdf8), var(--grad-tri);
+  background-origin: border-box;
+  background-clip: content-box, border-box;
+  box-shadow: 0 8px 22px rgba(255, 153, 51, .22);
+}
+[data-theme="independence"] .check-list i { color: var(--green); }
+[data-theme="independence"] .stat-card {
+  border: 1px solid rgba(255, 153, 51, .35);
+  box-shadow: 0 16px 40px rgba(255, 153, 51, .22);
+}
+[data-theme="independence"] .stat-card strong { color: var(--saffron-deep); }
+[data-theme="independence"] .about-img img {
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fff,#fff), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+}
+
+/* ── Pricing ────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .price-card {
+  border-color: rgba(255, 153, 51, .25); position: relative; overflow: hidden;
+}
+[data-theme="independence"] .price-card.featured {
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fff,#fff), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+  box-shadow: 0 28px 64px rgba(255, 153, 51, .28);
+}
+[data-theme="independence"] .price-card .ribbon {
+  background: var(--grad-blue); color: #fff;
+}
+[data-theme="independence"] .price-card li i { color: var(--green); }
+[data-theme="independence"] .price-card .num { color: var(--saffron-deep) !important; }
+/* Festive offer flag on each plan */
+[data-theme="independence"] .price-card::after {
+  content: 'Freedom Offer';
+  position: absolute; top: 14px; right: -34px;
+  background: linear-gradient(135deg, var(--saffron), var(--saffron-deep)); color: #fff;
+  font-size: .58rem; font-weight: 900; letter-spacing: .06em;
+  padding: 4px 34px; transform: rotate(38deg);
+  box-shadow: 0 4px 12px rgba(0,0,0,.18);
+}
+
+/* ── Before/After gallery ───────────────────────────────────────────────── */
+[data-theme="independence"] .ba { border: 3px solid transparent;
+  background-image: linear-gradient(#fff,#fff), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+}
+[data-theme="independence"] .ba-handle {
+  background: var(--grad-tri); color: #08103a;
+  box-shadow: 0 6px 18px rgba(0,0,0,.3);
+}
+[data-theme="independence"] .ba-tag.left  { background: rgba(255,153,51,.92); color: #08103a; }
+[data-theme="independence"] .ba-tag.right { background: rgba(19,136,8,.92); color: #fff; }
+
+/* ── Reviews ────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .rcard {
+  border-color: rgba(255, 153, 51, .22);
+  transition: transform .3s, box-shadow .3s;
+}
+[data-theme="independence"] .rcard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 46px rgba(255, 153, 51, .22);
+}
+[data-theme="independence"] .ravatar {
+  color: var(--chakra); font-weight: 800;
+  border: 2px solid transparent;
+  background-image: linear-gradient(#fffdf8, #fffdf8), var(--grad-tri);
+  background-origin: border-box;
+  background-clip: content-box, border-box;
+}
+[data-theme="independence"] .stars i { color: var(--saffron); }
+
+/* ── FAQ ────────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .faq details {
+  border-color: rgba(255, 153, 51, .25); transition: border-color .25s, box-shadow .25s;
+}
+[data-theme="independence"] .faq details[open] {
+  border-color: rgba(255, 153, 51, .6);
+  box-shadow: 0 14px 34px rgba(255, 153, 51, .16);
+}
+[data-theme="independence"] .faq summary::after { color: var(--saffron); }
+
+/* ── Contact ────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .contact-form {
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fff,#fff), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+}
+[data-theme="independence"] .contact-list i { color: var(--saffron); }
+[data-theme="independence"] .field input:focus,
+[data-theme="independence"] .field select:focus,
+[data-theme="independence"] .field textarea:focus {
+  border-color: var(--saffron);
+  box-shadow: 0 0 0 4px rgba(255, 153, 51, .16);
+}
+[data-theme="independence"] .map-wrap {
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fff,#fff), var(--grad-tri);
+  background-origin: border-box; background-clip: content-box, border-box;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .footer {
+  background: var(--grad-hero); position: relative;
+}
+[data-theme="independence"] .footer::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 4px;
+  background: var(--grad-tri);
+}
+[data-theme="independence"] .footer h5 { color: var(--saffron); }
+[data-theme="independence"] .socials a {
+  border: 1px solid rgba(255, 153, 51, .3); transition: transform .25s, background .25s;
+}
+[data-theme="independence"] .socials a:hover {
+  background: var(--grad-blue); transform: translateY(-3px) scale(1.06);
+}
+[data-theme="independence"] .foot-bottom { border-top-color: rgba(255, 153, 51, .2); }
+/* Jai Hind sign-off */
+[data-theme="independence"] .foot-bottom::after {
+  content: '🇮🇳 Jai Hind';
+  display: block; width: 100%; text-align: center; margin-top: 10px;
+  font-weight: 800; letter-spacing: .16em; font-size: .72rem;
+  background: linear-gradient(100deg, #ff9933, #fff 50%, #138808);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ── Floating theme toggle ──────────────────────────────────────────────── */
+.id-theme-toggle {
+  position: fixed; right: 22px; bottom: 92px; z-index: 900;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 10px 16px 10px 12px; border: 0; cursor: pointer;
+  border-radius: 999px; font-family: inherit; font-weight: 800; font-size: .8rem;
+  color: var(--chakra, #000080);
+  border: 3px solid transparent;
+  background-image: linear-gradient(#fffdf8, #fffdf8),
+                    linear-gradient(180deg, #ff9933 0 33.33%, #ffffff 33.33% 66.66%, #138808 66.66%);
+  background-origin: border-box; background-clip: content-box, border-box;
+  box-shadow: 0 12px 30px rgba(8, 16, 58, .3);
+  transition: transform .25s, box-shadow .25s;
+}
+.id-theme-toggle:hover { transform: translateY(-3px) scale(1.04); box-shadow: 0 18px 42px rgba(8,16,58,.4); }
+.id-theme-toggle .chakra { font-size: 18px; border-color: #000080; }
+[data-theme="original"] .id-theme-toggle {
+  border-color: transparent; color: #fff;
+  background-image: linear-gradient(135deg, #1565c0, #1e90ff),
+                    linear-gradient(135deg, #1565c0, #1e90ff);
+}
+
+/* ── Confetti burst on theme switch ─────────────────────────────────────── */
+.id-confetti {
+  position: fixed; top: -12px; width: 9px; height: 14px;
+  z-index: 9998; pointer-events: none; border-radius: 2px;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0); opacity: 1; }
+  100% { transform: translateY(104vh) rotate(760deg); opacity: 0; }
+}
+
+/* ── Diya glow accent for WhatsApp float ────────────────────────────────── */
+[data-theme="independence"] .wa-float {
+  box-shadow: 0 12px 30px rgba(19, 136, 8, .5);
+  animation: wa-pulse-tri 2.6s ease-in-out infinite;
+}
+@keyframes wa-pulse-tri {
+  0%,100% { box-shadow: 0 12px 30px rgba(19,136,8,.45); }
+  50%     { box-shadow: 0 14px 44px rgba(255,153,51,.75); }
+}
+
+/* ── Modals ─────────────────────────────────────────────────────────────── */
+[data-theme="independence"] .mnu-modal-box {
+  border-top: 4px solid var(--saffron);
+}
+[data-theme="independence"] .auth-tab-btn.active { color: var(--saffron-deep); }
+[data-theme="independence"] .auth-tabs { border-bottom-color: rgba(255,153,51,.25); }
+[data-theme="independence"] .auth-tab-btn.active::after { background: var(--grad-tri); }
+
+/* ── Reveal: richer entrance for the festive theme ──────────────────────── */
+[data-theme="independence"] .reveal {
+  transform: translateY(30px) scale(.985);
+  transition: opacity .8s cubic-bezier(.2,.7,.3,1), transform .8s cubic-bezier(.2,.7,.3,1);
+}
+[data-theme="independence"] .reveal.visible { transform: none; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 780px) {
+  [data-theme="independence"] .id-banner-inner { font-size: .74rem; gap: 9px; padding-right: 40px; }
+  [data-theme="independence"] .id-flag { width: 84px; height: 58px; }
+  [data-theme="independence"] .id-flag .chakra { font-size: 18px; }
+  .id-theme-toggle { right: 14px; bottom: 84px; padding: 9px 13px 9px 10px; font-size: .72rem; }
+  [data-theme="independence"] .price-card::after { font-size: .5rem; padding: 3px 30px; }
+}
+@media (max-width: 520px) {
+  .id-theme-toggle .id-tt-label { display: none; }
+  .id-theme-toggle { padding: 11px; border-radius: 50%; }
+  [data-theme="independence"] .id-cd-box { min-width: 30px; font-size: .72rem; }
+}
+
+/* ── Accessibility: honour reduced-motion ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="independence"] .chakra,
+  [data-theme="independence"] .id-flag,
+  [data-theme="independence"] .id-flag::after,
+  [data-theme="independence"] .id-kite,
+  [data-theme="independence"] .hero-card,
+  [data-theme="independence"] .accent,
+  [data-theme="independence"] .btn-primary::after,
+  [data-theme="independence"] .section-alt::before,
+  [data-theme="independence"] .wa-float,
+  .id-confetti {
+    animation: none !important;
+  }
+  [data-theme="independence"] .accent {
+    -webkit-text-fill-color: initial;
+    background: none;
+    color: var(--saffron-deep);
+  }
+  [data-theme="independence"] #idCanvas { display: none; }
+}
