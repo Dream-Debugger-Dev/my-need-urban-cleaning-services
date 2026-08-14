@@ -16,10 +16,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="css/animations.css" />
+  <!-- NOTE: ?v= is a cache-buster. GitHub Pages serves assets with
+       Cache-Control: max-age=600, so bump this value on every deploy that
+       changes CSS/JS or returning visitors keep the stale file for 10 min. -->
+  <link rel="stylesheet" href="css/style.css?v=20260814" />
+  <link rel="stylesheet" href="css/animations.css?v=20260814" />
   <!-- Seasonal: Independence Day theme (additive override layer — see css/themes/README.md) -->
-  <link rel="stylesheet" href="css/independence.css" />
+  <link rel="stylesheet" href="css/independence.css?v=20260814" />
 
   <script type="application/ld+json">
   {
@@ -684,12 +687,12 @@
     <span class="id-tt-label">Independence</span>
   </button>
 
-  <script src="js/main.js"></script>
-  <script src="js/independence.js" defer></script>
-  <script src="js/slider.js"></script>
-  <script type="module" src="js/form.js"></script>
-  <script type="module" src="js/auth.js"></script>
-  <script type="module" src="js/booking.js"></script>
+  <script src="js/main.js?v=20260814"></script>
+  <script src="js/independence.js?v=20260814" defer></script>
+  <script src="js/slider.js?v=20260814"></script>
+  <script type="module" src="js/form.js?v=20260814"></script>
+  <script type="module" src="js/auth.js?v=20260814"></script>
+  <script type="module" src="js/booking.js?v=20260814"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">
