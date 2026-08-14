@@ -158,11 +158,22 @@ const SERVICE_CATALOG = [
   },
 ];
 
+// ─── Service card aliases ─────────────────────────────────────────────────────
+// Some homepage cards are marketing entry points rather than their own catalog.
+// They open an existing catalog straight away but keep their own heading, so a
+// visitor who clicked "Bungalow Cleaning" doesn't suddenly see "Deep Cleaning".
+const SERVICE_ALIASES = {
+  home:     { target: 'deep', title: 'Home Cleaning' },
+  bungalow: { target: 'deep', title: 'Bungalow Cleaning' },
+};
+
 // ─── State ────────────────────────────────────────────────────────────────────
 let _selectedService = null;
 let _step = 0; // 0=catalog, 1=details, 2=address, 3=summary+CTA
 let _quantity = 1;
 let _currentCatalog = null;
+let _entryTitle = null;      // heading to show for the aliased entry level
+let _entryCatalogId = null;  // catalog id the heading applies to
 
 const WHATSAPP_NUMBER = '919613304724'; // wa.me format: no + prefix
 
@@ -213,14 +224,23 @@ export function openBooking(serviceId) {
   _selectedService = null;
   _quantity = 1;
   _currentCatalog = null;
+  _entryTitle = null;
+  _entryCatalogId = null;
   window._bookingAddress = '';
   window._bookingNotes = '';
 
   if (serviceId) {
-    const found = findService(serviceId, SERVICE_CATALOG);
+    // Resolve marketing aliases (e.g. "home"/"bungalow" → the deep-clean catalog)
+    const alias = SERVICE_ALIASES[serviceId];
+    const lookupId = alias ? alias.target : serviceId;
+
+    const found = findService(lookupId, SERVICE_CATALOG);
     if (found) {
       if (found.isLeaf) { _selectedService = found; _step = 1; }
-      else { _currentCatalog = found; }
+      else {
+        _currentCatalog = found;
+        if (alias) { _entryTitle = alias.title; _entryCatalogId = found.id; }
+      }
     }
   }
   document.getElementById('bookingModal')?.classList.add('modal-open');
@@ -237,7 +257,11 @@ function renderBookingStep() {
   const title    = modal.querySelector('.booking-title');
 
   if (_step === 0) {
-    title.textContent = _currentCatalog ? _currentCatalog.title : 'Select a Service';
+    // Show the entry card's own name at the level it opened; deeper levels use
+    // the real catalog title.
+    title.textContent = _currentCatalog
+      ? (_entryTitle && _currentCatalog.id === _entryCatalogId ? _entryTitle : _currentCatalog.title)
+      : 'Select a Service';
     progress.innerHTML = renderProgress(0);
     body.innerHTML = renderCatalogHTML(_currentCatalog ? _currentCatalog.children : SERVICE_CATALOG);
     attachCatalogEvents(body);
