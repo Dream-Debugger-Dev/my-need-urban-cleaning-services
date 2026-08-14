@@ -46,6 +46,31 @@ const FURNISHED_ADDONS = [
   'Sofa, Carpet, Mattress wet shampooing — additional price',
 ];
 
+// ─── Kitchen deep cleaning ────────────────────────────────────────────────────
+// Work common to every kitchen package.
+const KITCHEN_BASE_COVERED = [
+  'Cleaning of tiles, slabs, sink and windows',
+  'Cabinet cleaning — Interior & Exterior',
+  'Oil stain removal',
+  'Gas stove & hob cleaning',
+];
+
+const KITCHEN_CHIMNEY    = 'Chimney cleaning';
+const KITCHEN_FRIDGE     = 'Fridge cleaning';
+const KITCHEN_APPLIANCES = 'Microwave, oven & other appliance cleaning';
+
+/**
+ * Builds the inclusion list for a kitchen package.
+ * Each package lists exactly what it covers (no "if selected" ambiguity).
+ * @param {boolean} occupied - occupied kitchens add utensil re-arrangement
+ * @param {string[]} extras  - appliance items included at this tier
+ */
+const kitchenCovered = (occupied, extras = []) => [
+  ...(occupied ? ['Utensil re-arrangement'] : []),
+  ...KITCHEN_BASE_COVERED,
+  ...extras,
+];
+
 const SERVICE_CATALOG = [
   {
     id: 'deep', title: 'Deep Cleaning', icon: 'fa-broom',
@@ -81,11 +106,29 @@ const SERVICE_CATALOG = [
     isLeaf: true, isFixed: true, price: 499, priceUnit: 'per bathroom',
   },
   {
-    id: 'kitchen', title: 'Kitchen Cleaning', icon: 'fa-utensils',
-    subtitle: 'Deep clean inside & out',
+    id: 'kitchen', title: 'Kitchen Deep Cleaning', icon: 'fa-utensils',
+    subtitle: 'Occupied & Empty kitchen packages · from ₹1,299',
     children: [
-      { id: 'kitchen_basic', title: 'Kitchen Only', icon: 'fa-utensils', isLeaf: true, isFixed: true, price: 999, priceUnit: 'per visit' },
-      { id: 'kitchen_full', title: 'Kitchen + Fridge + Microwave', icon: 'fa-utensils', isLeaf: true, isFixed: true, price: 1499, priceUnit: 'per visit' },
+      {
+        id: 'kitchen-occupied', title: 'Occupied Kitchen Package', icon: 'fa-utensils',
+        subtitle: 'In-use kitchen · includes utensil re-arrangement',
+        children: [
+          { id: 'kitchen-occ-base',           title: 'Occupied Kitchen',      icon: 'fa-utensils',  isLeaf: true, isFixed: true, price: 1499, priceUnit: 'per visit', covered: kitchenCovered(true) },
+          { id: 'kitchen-occ-chimney',        title: 'With Chimney',          icon: 'fa-fan',       isLeaf: true, isFixed: true, price: 1899, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY]) },
+          { id: 'kitchen-occ-chimney-fridge', title: 'With Chimney & Fridge', icon: 'fa-snowflake', isLeaf: true, isFixed: true, price: 2399, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE]) },
+          { id: 'kitchen-occ-all',            title: 'With All Appliances',   icon: 'fa-blender',   isLeaf: true, isFixed: true, price: 2699, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE, KITCHEN_APPLIANCES]) },
+        ]
+      },
+      {
+        id: 'kitchen-empty', title: 'Empty Kitchen Package', icon: 'fa-box-open',
+        subtitle: 'Cleared kitchen · best value',
+        children: [
+          { id: 'kitchen-emp-base',           title: 'Empty Kitchen',         icon: 'fa-box-open',  isLeaf: true, isFixed: true, price: 1299, priceUnit: 'per visit', covered: kitchenCovered(false) },
+          { id: 'kitchen-emp-chimney',        title: 'With Chimney',          icon: 'fa-fan',       isLeaf: true, isFixed: true, price: 1699, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY]) },
+          { id: 'kitchen-emp-chimney-fridge', title: 'With Chimney & Fridge', icon: 'fa-snowflake', isLeaf: true, isFixed: true, price: 2099, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE]) },
+          { id: 'kitchen-emp-all',            title: 'With All Appliances',   icon: 'fa-blender',   isLeaf: true, isFixed: true, price: 2499, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE, KITCHEN_APPLIANCES]) },
+        ]
+      },
     ]
   },
   {
