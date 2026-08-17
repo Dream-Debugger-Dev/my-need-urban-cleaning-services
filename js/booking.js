@@ -194,28 +194,146 @@ function findService(id, catalog) {
   return null;
 }
 
+// ─── WhatsApp message helpers ─────────────────────────────────────────────────
+
+/** Full trail of nodes from a top-level catalog down to `id`. */
+function servicePath(id, catalog = SERVICE_CATALOG, trail = []) {
+  for (const item of catalog) {
+    const next = [...trail, item];
+    if (item.id === id) return next;
+    if (item.children) {
+      const found = servicePath(id, item.children, next);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Indian-format money, e.g. 4599 -> "4,599". */
+const inr = n => Number(n).toLocaleString('en-IN');
+
+/** Does this package charge per unit (per bathroom/seat) rather than per visit? */
+function hasQuantity(svc) {
+  return !!(svc.isFixed && svc.priceUnit?.startsWith('per ') && !svc.priceUnit?.includes('visit'));
+}
+
+/** Short human reference so the office can track the enquiry. */
+function enquiryRef() {
+  return 'MNU-' + Date.now().toString(36).slice(-5).toUpperCase();
+}
+
+/** Renders a bullet list, trimming very long lists to keep the URL sane. */
+function bulletList(items, max = 12) {
+  const shown = items.slice(0, max).map(i => `• ${i}`);
+  if (items.length > max) shown.push(`• …and ${items.length - max} more`);
+  return shown;
+}
+
 // ─── Build WhatsApp message ───────────────────────────────────────────────────
-function buildWhatsAppMessage(guestName, guestPhone) {
+function buildWhatsAppMessage(guestName, guestPhone, guestEmail) {
+  const svc   = _selectedService;
   const total = getTotal();
-  const svc = _selectedService;
-  const lines = [
-    `*New Enquiry — MyNeedUrban Website*`,
-    ``,
-    `*Service:* ${svc.title}`,
-    _quantity > 1 ? `*Quantity:* ${_quantity}` : null,
-    svc.isFixed
-      ? `*Price:* ₹${total}${svc.mrp ? ` (MRP ₹${svc.mrp} · Save ₹${svc.mrp - svc.price})` : ''}`
-      : `*Pricing:* Get a Quote`,
-    ``,
-    `*Address:* ${window._bookingAddress || '-'}`,
-    window._bookingNotes ? `*Notes:* ${window._bookingNotes}` : null,
-    ``,
-    guestName  ? `*Name:* ${guestName}`  : null,
-    guestPhone ? `*Phone:* ${guestPhone}` : null,
-    ``,
-    `_Sent from myneedurban.com_`,
-  ];
-  return encodeURIComponent(lines.filter(l => l !== null).join('\n'));
+  const qty   = hasQuantity(svc) ? _quantity : 1;
+  const unit  = svc.priceUnit ? svc.priceUnit.replace(/^per\s+/, '') : 'visit';
+
+  // Full drill-down path, e.g. Deep Cleaning > Unfurnished House > 2 BHK
+  const path  = servicePath(svc.id) || [svc];
+  const crumb = path.map(n => n.title).join(' > ');
+
+  // If the visitor arrived via a marketing card (Home/Bungalow), record that
+  // so the office knows what the customer believes they booked.
+  const viaAlias = _entryTitle && path[0] && _entryTitle !== path[0].title
+    ? _entryTitle
+    : null;
+
+  const now = new Date();
+  const when = now.toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  }).replace(/\b(am|pm)\b/i, m => m.toUpperCase());
+
+  const SEP = '- - - - - - - - - - - - - - -';
+  const L = [];
+
+  L.push('*NEW BOOKING ENQUIRY*');
+  L.push('_MyNeedUrban Cleaning Services_');
+  L.push(SEP);
+  L.push('');
+
+  // ── Service
+  L.push('*SERVICE*');
+  L.push(crumb);
+  if (viaAlias) L.push(`_(enquired via "${viaAlias}")_`);
+  L.push('');
+
+  // ── Pricing
+  L.push('*PRICING*');
+  if (svc.isFixed) {
+    if (qty > 1) {
+      L.push(`Rate: ₹${inr(svc.price)} per ${unit}`);
+      L.push(`Quantity: ${qty} ${unit}${qty > 1 ? 's' : ''}`);
+      L.push(`*Total: ₹${inr(total)}*`);
+    } else {
+      L.push(`*Total: ₹${inr(total)}* (per ${unit})`);
+    }
+    if (svc.mrp) {
+      const saved = svc.mrp - svc.price;
+      const pct   = Math.round((saved / svc.mrp) * 100);
+      L.push(`MRP ₹${inr(svc.mrp)} — you save ₹${inr(saved * qty)} (${pct}% off)`);
+    }
+    L.push('_Pay after the service is completed._');
+  } else {
+    L.push('Custom quote — to be confirmed');
+    L.push('_Our team will review the details and share a quotation._');
+  }
+  L.push('');
+
+  // ── What's included / excluded
+  if (svc.covered?.length) {
+    L.push('*INCLUDED*');
+    L.push(...bulletList(svc.covered));
+    L.push('');
+  }
+  if (svc.notCovered?.length) {
+    L.push('*NOT INCLUDED*');
+    L.push(...bulletList(svc.notCovered, 8));
+    L.push('');
+  }
+  if (svc.addons?.length) {
+    L.push('*OPTIONAL ADD-ONS* (charged extra)');
+    L.push(...bulletList(svc.addons, 6));
+    L.push('');
+  }
+
+  // ── Address (preserve the customer's own line breaks)
+  L.push('*SERVICE ADDRESS*');
+  const addr = (window._bookingAddress || '').trim();
+  if (addr) addr.split(/\r?\n/).forEach(l => l.trim() && L.push(l.trim()));
+  else L.push('(not provided)');
+  L.push('');
+
+  // ── Customer notes / requirement
+  const notes = (window._bookingNotes || '').trim();
+  if (notes) {
+    L.push(svc.isFixed ? '*CUSTOMER NOTES*' : '*REQUIREMENT DETAILS*');
+    notes.split(/\r?\n/).forEach(l => l.trim() && L.push(l.trim()));
+    L.push('');
+  }
+
+  // ── Contact
+  L.push('*CONTACT DETAILS*');
+  L.push(`Name: ${guestName || '(not provided)'}`);
+  L.push(`Phone: ${guestPhone ? (guestPhone.startsWith('+') ? guestPhone : '+91 ' + guestPhone) : '(not provided)'}`);
+  if (guestEmail) L.push(`Email: ${guestEmail}`);
+  L.push('');
+
+  // ── Footer
+  L.push(SEP);
+  L.push(`Ref: ${enquiryRef()}`);
+  L.push(`Requested: ${when}`);
+  L.push('_Sent from myneedurban.com_');
+
+  return encodeURIComponent(L.join('\n'));
 }
 
 // ─── Open booking (no login required — user can explore freely) ───────────────
@@ -506,7 +624,8 @@ function attachSummaryEvents(body) {
     if (user) {
       const name  = window._userProfile?.name  || user.displayName || '';
       const phone = window._userProfile?.phone || user.phoneNumber  || '';
-      const msg   = buildWhatsAppMessage(name, phone);
+      const email = window._userProfile?.email || user.email        || '';
+      const msg   = buildWhatsAppMessage(name, phone, email);
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
       return;
     }
