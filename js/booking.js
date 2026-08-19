@@ -241,6 +241,59 @@ function findService(id, catalog) {
   return null;
 }
 
+// ─── Address helpers ──────────────────────────────────────────────────────────
+
+const ADDRESS_FIELDS = ['flat', 'building', 'street', 'landmark', 'city', 'pincode'];
+
+/** Blank address record. `geo` is filled only if the customer shares location. */
+function emptyAddress() {
+  return { flat: '', building: '', street: '', landmark: '', city: 'Hyderabad', pincode: '', lat: null, lng: null };
+}
+
+/** Live address record, created on first use. */
+function addr() {
+  if (!window._bookingAddr) window._bookingAddr = emptyAddress();
+  return window._bookingAddr;
+}
+
+/** Human-readable multi-line address (also what we store as `address`). */
+function composeAddress(a = addr()) {
+  const line1 = [a.flat, a.building].filter(Boolean).join(', ');
+  const line2 = a.street;
+  const line3 = a.landmark ? `Landmark: ${a.landmark}` : '';
+  const line4 = [a.city, a.pincode].filter(Boolean).join(' - ');
+  return [line1, line2, line3, line4].filter(s => s && s.trim()).join('\n');
+}
+
+/** Single-line version for compact display. */
+function addressOneLine(a = addr()) {
+  return composeAddress(a).split('\n').join(', ');
+}
+
+/**
+ * What we hand to Google Maps: exact coords if shared, else the typed address.
+ * Flat numbers and the "Landmark:" label are left out — they aren't geocodable
+ * and measurably worsen the match. Building + street + city + pincode is best.
+ */
+function mapsQuery(a = addr()) {
+  if (a.lat != null && a.lng != null) return `${a.lat},${a.lng}`;
+  return [a.building, a.street, a.city, a.pincode].filter(s => s && s.trim()).join(', ');
+}
+
+/** Tappable link for the crew — opens the location in Google Maps. */
+function mapsLink(a = addr()) {
+  const q = mapsQuery(a);
+  return q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : '';
+}
+
+/** Keyless embed URL (same approach as the contact-section map). */
+function mapsEmbed(a = addr()) {
+  const q = mapsQuery(a);
+  if (!q) return '';
+  const zoom = (a.lat != null) ? 17 : 14;
+  return `https://www.google.com/maps?q=${encodeURIComponent(q)}&z=${zoom}&output=embed`;
+}
+
 // ─── WhatsApp message helpers ─────────────────────────────────────────────────
 
 /** Full trail of nodes from a top-level catalog down to `id`. */
@@ -352,11 +405,22 @@ function buildWhatsAppMessage(guestName, guestPhone, guestEmail) {
     L.push('');
   }
 
-  // ── Address (preserve the customer's own line breaks)
+  // ── Address, plus a tappable Maps link so the crew can navigate
   L.push('*SERVICE ADDRESS*');
-  const addr = (window._bookingAddress || '').trim();
-  if (addr) addr.split(/\r?\n/).forEach(l => l.trim() && L.push(l.trim()));
+  const composed = composeAddress().trim();
+  if (composed) composed.split(/\r?\n/).forEach(l => l.trim() && L.push(l.trim()));
   else L.push('(not provided)');
+
+  const a = addr();
+  if (a.lat != null && a.lng != null) {
+    L.push(`GPS: ${a.lat}, ${a.lng} _(shared by customer)_`);
+  }
+  const link = mapsLink();
+  if (link) {
+    L.push('');
+    L.push('*NAVIGATE*');
+    L.push(link);
+  }
   L.push('');
 
   // ── Customer notes / requirement
@@ -391,7 +455,9 @@ export function openBooking(serviceId) {
   _currentCatalog = null;
   _entryTitle = null;
   _entryCatalogId = null;
-  window._bookingAddress = '';
+  // Address is customer-specific, so keep it between bookings in the same
+  // session (saves re-typing six fields). Notes are service-specific, so clear.
+  window._bookingAddress = composeAddress();
   window._bookingNotes = '';
 
   if (serviceId) {
@@ -570,11 +636,70 @@ function attachDetailsEvents(body) {
 
 // ─── Step 2: Address ──────────────────────────────────────────────────────────
 function renderAddressStep() {
+  const a = addr();
+  const embed = mapsEmbed(a);
+  const link  = mapsLink(a);
+  const esc = s => String(s || '').replace(/"/g, '&quot;');
+
   return `
     <div class="step-section">
-      <label class="step-label">Your Address</label>
-      <textarea class="field-input" id="bookingAddress" rows="3"
-        placeholder="Flat/House No., Building, Street, Area...">${window._bookingAddress || ''}</textarea>
+      <label class="step-label">Service Address</label>
+
+      <button type="button" class="locate-btn" id="useMyLocation">
+        <i class="fa-solid fa-location-crosshairs"></i>
+        <span>Use my current location</span>
+      </button>
+      <p class="locate-status" id="locateStatus">
+        ${a.lat != null
+          ? `<i class="fa-solid fa-circle-check"></i> Location pinned — the crew will get exact directions`
+          : ''}
+      </p>
+
+      <div class="addr-grid">
+        <div class="addr-field">
+          <label for="addrFlat">Flat / House No. <span class="req">*</span></label>
+          <input class="field-input" id="addrFlat" data-addr="flat" value="${esc(a.flat)}"
+                 placeholder="e.g. 402" autocomplete="address-line1" />
+        </div>
+        <div class="addr-field">
+          <label for="addrBuilding">Building / Society</label>
+          <input class="field-input" id="addrBuilding" data-addr="building" value="${esc(a.building)}"
+                 placeholder="e.g. Aparna Sarovar" autocomplete="address-line2" />
+        </div>
+        <div class="addr-field addr-wide">
+          <label for="addrStreet">Street / Locality / Area <span class="req">*</span></label>
+          <input class="field-input" id="addrStreet" data-addr="street" value="${esc(a.street)}"
+                 placeholder="e.g. Nallagandla, Serilingampally" autocomplete="address-level3" />
+        </div>
+        <div class="addr-field addr-wide">
+          <label for="addrLandmark">Nearby Landmark</label>
+          <input class="field-input" id="addrLandmark" data-addr="landmark" value="${esc(a.landmark)}"
+                 placeholder="e.g. opposite Reliance Fresh" />
+        </div>
+        <div class="addr-field">
+          <label for="addrCity">City <span class="req">*</span></label>
+          <input class="field-input" id="addrCity" data-addr="city" value="${esc(a.city)}"
+                 placeholder="Hyderabad" autocomplete="address-level2" />
+        </div>
+        <div class="addr-field">
+          <label for="addrPincode">Pincode <span class="req">*</span></label>
+          <input class="field-input" id="addrPincode" data-addr="pincode" value="${esc(a.pincode)}"
+                 placeholder="500019" inputmode="numeric" maxlength="6" autocomplete="postal-code" />
+        </div>
+      </div>
+
+      <div class="map-preview ${embed ? '' : 'is-empty'}" id="mapPreview">
+        ${embed
+          ? `<iframe title="Service location preview" src="${embed}" loading="lazy"
+                     referrerpolicy="no-referrer-when-downgrade"></iframe>
+             <a class="map-verify" href="${link}" target="_blank" rel="noopener">
+               <i class="fa-solid fa-map-location-dot"></i> Verify on Google Maps
+             </a>`
+          : `<div class="map-empty">
+               <i class="fa-solid fa-map-location-dot"></i>
+               <span>Fill the address or share your location to preview it on the map</span>
+             </div>`}
+      </div>
     </div>
     <div class="step-section">
       <label class="step-label">${_selectedService.isFixed ? 'Notes (optional)' : 'Describe your requirement'}</label>
@@ -603,7 +728,10 @@ function renderSummaryStep() {
              <strong>₹${total}${svc.mrp ? ` <span class="save-badge">Save ₹${svc.mrp - svc.price}</span>` : ''}</strong>
            </div>`
         : `<div class="confirm-row"><span>Pricing</span><strong>Custom Quote</strong></div>`}
-      <div class="confirm-row"><span>Address</span><strong>${window._bookingAddress || '-'}</strong></div>
+      <div class="confirm-row"><span>Address</span><strong>${addressOneLine() || '-'}</strong></div>
+      ${addr().lat != null
+        ? `<div class="confirm-row"><span>Location</span><strong class="geo-ok"><i class="fa-solid fa-location-dot"></i> GPS pinned</strong></div>`
+        : ''}
       ${window._bookingNotes ? `<div class="confirm-row"><span>Notes</span><strong>${window._bookingNotes}</strong></div>` : ''}
     </div>
 
@@ -718,24 +846,104 @@ document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('bookingModal');
   if (!modal) return;
 
+  // Refreshes the embedded map without re-rendering the whole step
+  // (re-rendering would steal focus from the field being typed in).
+  let mapTimer = null;
+  function refreshMapPreview() {
+    clearTimeout(mapTimer);
+    mapTimer = setTimeout(() => {
+      const host = document.getElementById('mapPreview');
+      if (!host) return;
+      const embed = mapsEmbed();
+      const link  = mapsLink();
+      if (!embed) {
+        host.classList.add('is-empty');
+        host.innerHTML = `<div class="map-empty"><i class="fa-solid fa-map-location-dot"></i>
+          <span>Fill the address or share your location to preview it on the map</span></div>`;
+        return;
+      }
+      host.classList.remove('is-empty');
+      const frame = host.querySelector('iframe');
+      if (frame) {
+        if (frame.getAttribute('src') !== embed) frame.setAttribute('src', embed);
+        host.querySelector('.map-verify')?.setAttribute('href', link);
+      } else {
+        host.innerHTML = `<iframe title="Service location preview" src="${embed}" loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <a class="map-verify" href="${link}" target="_blank" rel="noopener">
+            <i class="fa-solid fa-map-location-dot"></i> Verify on Google Maps</a>`;
+      }
+    }, 700); // debounce so we don't reload the iframe on every keystroke
+  }
+
   // Address / notes live capture
   modal.addEventListener('input', (e) => {
-    if (e.target.id === 'bookingAddress') window._bookingAddress = e.target.value;
-    if (e.target.id === 'bookingNotes')   window._bookingNotes   = e.target.value;
+    const key = e.target.dataset?.addr;
+    if (key && ADDRESS_FIELDS.includes(key)) {
+      let v = e.target.value;
+      if (key === 'pincode') {
+        v = v.replace(/\D/g, '').slice(0, 6);
+        if (e.target.value !== v) e.target.value = v;
+      }
+      addr()[key] = v;
+      // Typing a new address invalidates a previously pinned GPS point
+      if (key !== 'landmark' && addr().lat != null) {
+        addr().lat = null; addr().lng = null;
+        const st = document.getElementById('locateStatus');
+        if (st) st.innerHTML = '';
+      }
+      window._bookingAddress = composeAddress();
+      refreshMapPreview();
+    }
+    if (e.target.id === 'bookingNotes') window._bookingNotes = e.target.value;
+  });
+
+  // "Use my current location" — browser Geolocation, no API key needed
+  modal.addEventListener('click', (e) => {
+    if (!e.target.closest('#useMyLocation')) return;
+    const btn = modal.querySelector('#useMyLocation');
+    const st  = modal.querySelector('#locateStatus');
+    if (!navigator.geolocation) {
+      if (st) st.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> Your browser doesn't support location sharing`;
+      return;
+    }
+    btn.classList.add('is-loading');
+    if (st) st.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Getting your location…`;
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        btn.classList.remove('is-loading');
+        addr().lat = +pos.coords.latitude.toFixed(6);
+        addr().lng = +pos.coords.longitude.toFixed(6);
+        if (st) st.innerHTML = `<i class="fa-solid fa-circle-check"></i> Location pinned — the crew will get exact directions`;
+        refreshMapPreview();
+      },
+      err => {
+        btn.classList.remove('is-loading');
+        const msg = err.code === err.PERMISSION_DENIED
+          ? 'Location permission denied — please type the address instead'
+          : 'Could not get your location — please type the address instead';
+        if (st) st.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${msg}`;
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
   });
 
   // Delegated navigation for address step buttons
   modal.addEventListener('click', (e) => {
     if (e.target.closest('#backToDetails')) {
-      window._bookingAddress = document.getElementById('bookingAddress')?.value || '';
-      window._bookingNotes   = document.getElementById('bookingNotes')?.value   || '';
+      window._bookingAddress = composeAddress();
+      window._bookingNotes   = document.getElementById('bookingNotes')?.value || '';
       _step = 1;
       renderBookingStep();
     }
     if (e.target.closest('#toSummaryStep')) {
-      window._bookingAddress = document.getElementById('bookingAddress')?.value || '';
-      window._bookingNotes   = document.getElementById('bookingNotes')?.value   || '';
-      if (!window._bookingAddress?.trim()) { showToast('Please enter your address'); return; }
+      window._bookingNotes = document.getElementById('bookingNotes')?.value || '';
+      const a = addr();
+      if (!a.flat.trim())              { showToast('Please enter your flat / house number'); return; }
+      if (!a.street.trim())            { showToast('Please enter your street / locality');   return; }
+      if (!a.city.trim())              { showToast('Please enter your city');                return; }
+      if (!/^\d{6}$/.test(a.pincode))  { showToast('Please enter a valid 6-digit pincode');   return; }
+      window._bookingAddress = composeAddress();
       _step = 3;
       renderBookingStep();
     }

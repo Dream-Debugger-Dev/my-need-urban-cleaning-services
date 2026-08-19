@@ -1060,3 +1060,111 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
   .work-item:hover { transform: none; }
   .work-item:hover img { transform: none; }
 }
+
+/* ===========================
+   Booking — structured address form + map preview
+   =========================== */
+
+/* "Use my current location" */
+.locate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  justify-content: center;
+  padding: 12px 16px;
+  margin-bottom: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: .9rem;
+  color: var(--blue-600);
+  background: var(--blue-100);
+  border: 1px dashed var(--blue-500);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background .2s, color .2s, transform .2s;
+}
+.locate-btn:hover { background: var(--blue-500); color: #fff; border-style: solid; }
+.locate-btn:active { transform: scale(.99); }
+.locate-btn.is-loading { opacity: .7; pointer-events: none; }
+
+.locate-status {
+  margin: 0 0 12px;
+  min-height: 1.1em;
+  font-size: .8rem;
+  color: var(--muted);
+}
+.locate-status .fa-circle-check { color: #16a34a; }
+.locate-status .fa-circle-exclamation { color: var(--orange-600); }
+
+/* Field grid */
+.addr-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.addr-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.addr-field.addr-wide { grid-column: 1 / -1; }
+.addr-field label {
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ink-700);
+}
+.addr-field .req { color: var(--orange-600); }
+
+/* Map preview */
+.map-preview {
+  position: relative;
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+.map-preview iframe {
+  display: block;
+  width: 100%;
+  height: 190px;
+  border: 0;
+}
+.map-preview.is-empty { border-style: dashed; }
+
+.map-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 96px;
+  padding: 0 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .82rem;
+}
+.map-empty i { font-size: 1.1rem; color: var(--blue-500); }
+
+.map-verify {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  background: #fff;
+  border-top: 1px solid var(--line);
+}
+.map-verify:hover { background: var(--blue-100); }
+
+/* GPS confirmation on the summary step */
+.confirm-row .geo-ok { color: #16a34a; }
+
+@media (max-width: 560px) {
+  .addr-grid { grid-template-columns: 1fr; }
+  .map-preview iframe { height: 160px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .locate-btn { transition: none; }
+  .locate-btn:active { transform: none; }
+}
