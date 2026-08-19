@@ -1168,3 +1168,50 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
   .locate-btn { transition: none; }
   .locate-btn:active { transform: none; }
 }
+
+/* ===========================
+   Booking — "What we'll need from you"
+   Items the customer must arrange before the crew arrives
+   =========================== */
+.provide-section {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--orange-100);
+  border: 1px solid rgba(224, 90, 0, .22);
+  border-radius: var(--radius-sm);
+}
+
+.provide-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--orange-600);
+  margin-bottom: 8px;
+}
+
+.provide-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0 0 8px;
+}
+.provide-list li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+.provide-list li i {
+  font-size: .5rem;
+  color: var(--orange-500);
+}
+
+.provide-note {
+  display: block;
+  font-size: .75rem;
+  color: var(--muted);
+}

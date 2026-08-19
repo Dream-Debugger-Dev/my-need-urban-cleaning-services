@@ -93,6 +93,40 @@ const FLOOR_NOT_COVERED = [
   'Balcony dusting & cleaning',
 ];
 
+// ─── Sofa cleaning ────────────────────────────────────────────────────────────
+// Priced by TOTAL seat count across all sofas, not per sofa.
+const SOFA_COVERED = [
+  'Dry vacuuming — removes dust & dirt from surfaces, corners and crevices',
+  'Wet shampooing — lifts stains via foam-based shampooing with professional tools',
+  'Wet vacuuming & rinsing — extracts residual moisture and foam',
+  'Surface drying — sofa dries under a fan in 3–4 hrs',
+];
+
+const SOFA_NOT_COVERED = [
+  'Removal of paint or ink stains',
+];
+
+// Things the customer must arrange before the crew arrives.
+const SOFA_CUSTOMER_PROVIDES = [
+  'Bucket & water',
+  'Power point',
+];
+
+/** Builds a sofa tier priced by total seat count. */
+const sofaTier = (seats, price) => ({
+  id: `sofa-${seats}-seats`,
+  title: `${seats} Seats`,
+  subtitle: 'Total seats across all sofas',
+  icon: 'fa-couch',
+  isLeaf: true,
+  isFixed: true,
+  price,
+  priceUnit: 'per visit',
+  covered: SOFA_COVERED,
+  notCovered: SOFA_NOT_COVERED,
+  customerProvides: SOFA_CUSTOMER_PROVIDES,
+});
+
 /** Builds the 1–5 BHK floor-cleaning tiers for a furnishing type. */
 const floorTiers = (furnish, prices) =>
   [1, 2, 3, 4, 5].map(n => ({
@@ -169,8 +203,18 @@ const SERVICE_CATALOG = [
   },
   {
     id: 'sofa', title: 'Sofa Cleaning', icon: 'fa-couch',
-    subtitle: 'Per seat · Fabric & leather',
-    isLeaf: true, isFixed: true, price: 499, priceUnit: 'per seat',
+    subtitle: 'All sofa types · shampoo & deep clean · from ₹599',
+    children: [
+      sofaTier(3,  599),
+      sofaTier(4,  649),
+      sofaTier(5,  849),
+      sofaTier(6,  949),
+      sofaTier(7,  1049),
+      sofaTier(8,  1149),
+      sofaTier(9,  1249),
+      sofaTier(10, 1349),
+      sofaTier(12, 1499),
+    ],
   },
   {
     id: 'carpet', title: 'Carpet Cleaning', icon: 'fa-rug',
@@ -404,6 +448,11 @@ function buildWhatsAppMessage(guestName, guestPhone, guestEmail) {
     L.push(...bulletList(svc.addons, 6));
     L.push('');
   }
+  if (svc.customerProvides?.length) {
+    L.push('*CUSTOMER TO ARRANGE*');
+    L.push(...bulletList(svc.customerProvides, 6));
+    L.push('');
+  }
 
   // ── Address, plus a tappable Maps link so the crew can navigate
   L.push('*SERVICE ADDRESS*');
@@ -567,6 +616,7 @@ function renderDetailsStep() {
   const covered    = svc.covered    || [];
   const notCovered = svc.notCovered || [];
   const addons     = svc.addons     || [];
+  const provides   = svc.customerProvides || [];
 
   return `
     <div class="service-header-chip">
@@ -596,6 +646,15 @@ function renderDetailsStep() {
       <ul class="addons-list">
         ${addons.map(a => `<li><i class="fa-solid fa-info-circle"></i> ${a}</li>`).join('')}
       </ul>` : ''}
+    </div>` : ''}
+
+    ${provides.length ? `
+    <div class="provide-section">
+      <div class="provide-title"><i class="fa-solid fa-hand-holding-droplet"></i> What we'll need from you</div>
+      <ul class="provide-list">
+        ${provides.map(p => `<li><i class="fa-solid fa-circle-dot"></i> ${p}</li>`).join('')}
+      </ul>
+      <small class="provide-note">Please keep these ready so our team can start on time.</small>
     </div>` : ''}
 
     ${hasQty ? `
