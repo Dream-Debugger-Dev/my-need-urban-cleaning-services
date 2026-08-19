@@ -71,6 +71,42 @@ const kitchenCovered = (occupied, extras = []) => [
   ...extras,
 ];
 
+// ─── Floor-only deep cleaning ─────────────────────────────────────────────────
+// Floors only. Everything else in a full deep clean is deliberately excluded.
+const FLOOR_COVERED = [
+  'All floor deep cleaning with machine',
+  'Hall & Bedroom floor cleaning',
+  'Kitchen floor cleaning',
+  'Bathroom floor cleaning',
+  'Balcony floor cleaning',
+];
+
+const FLOOR_NOT_COVERED = [
+  'Glue / paint stains / sticker removal',
+  'Cleaning of terrace & inaccessible areas',
+  'Wet wiping of walls & ceiling',
+  'Hall & Bedroom wardrobe Interior & Exterior wet wiping',
+  'Windows, Fan, AC, Switchboard & Door — Dry & wet wiping',
+  'Cobweb removal & wall dusting',
+  'Kitchen cabinets Interior & Exterior wet scrubbing & wiping',
+  'Bathroom deep cleaning',
+  'Balcony dusting & cleaning',
+];
+
+/** Builds the 1–5 BHK floor-cleaning tiers for a furnishing type. */
+const floorTiers = (furnish, prices) =>
+  [1, 2, 3, 4, 5].map(n => ({
+    id: `floor-${furnish.toLowerCase()}-${n}bhk`,
+    title: `${n} BHK`,
+    icon: 'fa-home',
+    isLeaf: true,
+    isFixed: true,
+    price: prices[n - 1],
+    priceUnit: 'per visit',
+    covered: FLOOR_COVERED,
+    notCovered: FLOOR_NOT_COVERED,
+  }));
+
 const SERVICE_CATALOG = [
   {
     id: 'deep', title: 'Deep Cleaning', icon: 'fa-broom',
@@ -153,8 +189,19 @@ const SERVICE_CATALOG = [
   },
   {
     id: 'floor', title: 'Floor Cleaning', icon: 'fa-shoe-prints',
-    subtitle: 'Tile, marble, wood',
-    isLeaf: true, isFixed: false, requirementHint: 'Floor type and approximate area?',
+    subtitle: 'Floor-only deep clean · from ₹2,499',
+    children: [
+      {
+        id: 'floor-unfurnished', title: 'Unfurnished House', icon: 'fa-house-chimney',
+        subtitle: 'Floor deep cleaning with machine',
+        children: floorTiers('Unfurnished', [2499, 2899, 3299, 3799, 4199]),
+      },
+      {
+        id: 'floor-furnished', title: 'Furnished House', icon: 'fa-couch',
+        subtitle: 'Floor deep cleaning with machine',
+        children: floorTiers('Furnished', [2599, 2999, 3699, 3999, 4499]),
+      },
+    ],
   },
 ];
 
@@ -296,7 +343,7 @@ function buildWhatsAppMessage(guestName, guestPhone, guestEmail) {
   }
   if (svc.notCovered?.length) {
     L.push('*NOT INCLUDED*');
-    L.push(...bulletList(svc.notCovered, 8));
+    L.push(...bulletList(svc.notCovered, 12));
     L.push('');
   }
   if (svc.addons?.length) {
