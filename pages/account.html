@@ -219,6 +219,32 @@
           const dateStr = b.scheduledDate
             ? new Date(b.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
             : '';
+          // Order progress tracker. 'cancelled' opts out of the timeline.
+          const STAGES = [
+            { key: 'pending',    label: 'Placed',      icon: 'fa-receipt' },
+            { key: 'confirmed',  label: 'Confirmed',   icon: 'fa-circle-check' },
+            { key: 'inProgress', label: 'In Progress', icon: 'fa-broom' },
+            { key: 'completed',  label: 'Completed',   icon: 'fa-flag-checkered' },
+          ];
+          const stageIdx = STAGES.findIndex(s => s.key === status);
+          const isCancelled = status === 'cancelled';
+
+          const tracker = isCancelled
+            ? `<div class="bc-cancelled"><i class="fa-solid fa-ban"></i> This booking was cancelled</div>`
+            : `<div class="bc-track">
+                 ${STAGES.map((s, i) => `
+                   <div class="bct-step ${i <= stageIdx ? 'done' : ''} ${i === stageIdx ? 'current' : ''}">
+                     <div class="bct-dot"><i class="fa-solid ${i < stageIdx ? 'fa-check' : s.icon}"></i></div>
+                     <span>${s.label}</span>
+                   </div>
+                   ${i < STAGES.length - 1 ? `<div class="bct-line ${i < stageIdx ? 'done' : ''}"></div>` : ''}
+                 `).join('')}
+               </div>`;
+
+          const created = b.createdAt?.toDate
+            ? b.createdAt.toDate().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+            : '';
+
           return `
             <div class="booking-card">
               <div class="bc-top">
@@ -229,15 +255,29 @@
                 </div>
                 <span class="bc-status ${statusClass}">${status}</span>
               </div>
+
+              ${b.orderId ? `
+              <div class="bc-order">
+                <span class="bc-order-id"><i class="fa-solid fa-hashtag"></i> ${b.orderId}</span>
+                ${created ? `<span class="bc-order-date">${created}</span>` : ''}
+              </div>` : ''}
+
+              ${tracker}
+
               <div class="bc-meta">
                 ${dateStr ? `<span><i class="fa-solid fa-calendar"></i> ${dateStr}</span>` : ''}
                 ${b.timeSlot ? `<span><i class="fa-solid fa-clock"></i> ${b.timeSlot}</span>` : ''}
-                ${b.address ? `<span><i class="fa-solid fa-location-dot"></i> ${b.address.substring(0, 40)}${b.address.length > 40 ? '…' : ''}</span>` : ''}
+                ${b.address ? `<span><i class="fa-solid fa-location-dot"></i> ${b.address.split('\n')[0]}</span>` : ''}
                 ${b.amount > 0
                   ? `<span class="bc-amount">₹${b.amount} · Pay after service</span>`
                   : `<span class="bc-amount">Quote requested</span>`}
               </div>
-              ${status === 'pending' ? `<div style="margin-top:10px;"><button class="btn btn-outline" style="font-size:.8rem;padding:7px 14px;" onclick="cancelBooking('${d.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button></div>` : ''}
+
+              <div class="bc-actions">
+                ${b.mapsLink ? `<a class="bc-link" href="${b.mapsLink}" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> View location</a>` : ''}
+                <a class="bc-link" href="https://wa.me/919613304724?text=${encodeURIComponent('Hi MyNeedUrban, I have a question about my order ' + (b.orderId || ''))}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Ask about this order</a>
+                ${status === 'pending' ? `<button class="bc-link bc-link-danger" onclick="cancelBooking('${d.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button>` : ''}
+              </div>
             </div>
           `;
         }).join('');
