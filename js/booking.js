@@ -93,24 +93,92 @@ const FLOOR_NOT_COVERED = [
   'Balcony dusting & cleaning',
 ];
 
-// ─── Sofa cleaning ────────────────────────────────────────────────────────────
-// Priced by TOTAL seat count across all sofas, not per sofa.
-const SOFA_COVERED = [
-  'Dry vacuuming — removes dust & dirt from surfaces, corners and crevices',
+// ─── Shared wet-shampoo process (sofa · mattress · carpet) ────────────────────
+
+/** Things the customer must arrange before the crew arrives. */
+const WET_CLEAN_PROVIDES = ['Bucket & water', 'Power point'];
+
+/**
+ * The four-stage shampoo process, worded for the item being cleaned.
+ * @param {string} item    - what dries at the end (sofa / mattress / carpet)
+ * @param {string} vacLine - first-stage wording (carpet mentions fibres & crumbs)
+ */
+const shampooProcess = (item, vacLine) => [
+  vacLine,
   'Wet shampooing — lifts stains via foam-based shampooing with professional tools',
   'Wet vacuuming & rinsing — extracts residual moisture and foam',
-  'Surface drying — sofa dries under a fan in 3–4 hrs',
+  `Surface drying — ${item} dries under a fan in 3–4 hrs`,
 ];
 
-const SOFA_NOT_COVERED = [
+const UPHOLSTERY_VAC = 'Dry vacuuming — removes dust & dirt from surfaces, corners and crevices';
+
+// ── Sofa: priced by TOTAL seat count across all sofas, not per sofa.
+const SOFA_COVERED = shampooProcess('sofa', UPHOLSTERY_VAC);
+const SOFA_NOT_COVERED = ['Removal of paint or ink stains'];
+const SOFA_ADDONS = [
+  'Pillows — additional price',
+  'Ottoman / stool — additional price',
+  'Cushions — additional price',
+  'Sofa centre table — additional price',
+];
+
+// ── Mattress
+const MATTRESS_COVERED = shampooProcess('mattress', UPHOLSTERY_VAC);
+const MATTRESS_NOT_COVERED = [
   'Removal of paint or ink stains',
+  'Removal of heavy stains',
 ];
 
-// Things the customer must arrange before the crew arrives.
-const SOFA_CUSTOMER_PROVIDES = [
-  'Bucket & water',
-  'Power point',
+// ── Carpet (home carpets only — office carpets are a separate package)
+const CARPET_COVERED = shampooProcess(
+  'carpet',
+  'Carpet dry vacuuming — removes dust, dirt & crumbs from carpet fibres'
+);
+const CARPET_NOT_COVERED = [
+  'Removal of paint or ink stains',
+  'Removal of heavy stains',
 ];
+const CARPET_NOTES = [
+  'Home carpets only',
+  'Office carpets are booked under the Office Carpet Shampooing package',
+];
+
+/** Builds a carpet tier priced by area band. */
+const carpetTier = (label, range, price) => ({
+  id: `carpet-${label.toLowerCase().replace(/\s+/g, '-')}`,
+  title: `${label} (${range} sq ft)`,
+  subtitle: 'Home carpet',
+  icon: 'fa-rug',
+  isLeaf: true,
+  isFixed: true,
+  price,
+  priceUnit: 'per visit',
+  covered: CARPET_COVERED,
+  notCovered: CARPET_NOT_COVERED,
+  notes: CARPET_NOTES,
+  customerProvides: WET_CLEAN_PROVIDES,
+});
+
+// ─── Bathroom deep cleaning ───────────────────────────────────────────────────
+const BATHROOM_COVERED = [
+  'Hard water stains',
+  'Toilet seat — outside & inside',
+  'Sink, tiles, taps & other fixtures',
+  'Mirrors, windows & glass partition',
+  'Exhaust fan & other hard-to-reach areas',
+  'Grouting on top of the tiles',
+];
+const BATHROOM_NOT_COVERED = [
+  'Re-grouting or grouting deep inside tile joints',
+  'Cement & rust stains',
+  'Cabinet interiors, buckets, mugs & stools',
+  'Dismantling & cleaning of any appliance',
+];
+const BATHROOM_ADDONS = [
+  'Cement stain removal — additional price',
+  'Paint drop removal — additional price',
+];
+const BATHROOM_PROVIDES = ['Bucket & water', 'Power point', 'Ladder or stool'];
 
 /** Builds a sofa tier priced by total seat count. */
 const sofaTier = (seats, price) => ({
@@ -124,7 +192,8 @@ const sofaTier = (seats, price) => ({
   priceUnit: 'per visit',
   covered: SOFA_COVERED,
   notCovered: SOFA_NOT_COVERED,
-  customerProvides: SOFA_CUSTOMER_PROVIDES,
+  addons: SOFA_ADDONS,
+  customerProvides: WET_CLEAN_PROVIDES,
 });
 
 /** Builds the 1–5 BHK floor-cleaning tiers for a furnishing type. */
@@ -174,6 +243,10 @@ const SERVICE_CATALOG = [
     id: 'bathroom', title: 'Bathroom Cleaning', icon: 'fa-bath',
     subtitle: 'Per bathroom · Descaling & sanitising',
     isLeaf: true, isFixed: true, price: 499, priceUnit: 'per bathroom',
+    covered: BATHROOM_COVERED,
+    notCovered: BATHROOM_NOT_COVERED,
+    addons: BATHROOM_ADDONS,
+    customerProvides: BATHROOM_PROVIDES,
   },
   {
     id: 'kitchen', title: 'Kitchen Deep Cleaning', icon: 'fa-utensils',
@@ -218,13 +291,21 @@ const SERVICE_CATALOG = [
   },
   {
     id: 'carpet', title: 'Carpet Cleaning', icon: 'fa-rug',
-    subtitle: 'Shampoo & steam clean',
-    isLeaf: true, isFixed: false, requirementHint: 'Number and approximate size of carpets?',
+    subtitle: 'Home carpets · by area · from ₹599',
+    children: [
+      carpetTier('Small',       '25–50',   599),
+      carpetTier('Medium',      '50–100',  849),
+      carpetTier('Large',       '100–150', 999),
+      carpetTier('Extra Large', '150–200', 1199),
+    ],
   },
   {
     id: 'mattress', title: 'Mattress Cleaning', icon: 'fa-bed',
-    subtitle: 'Per mattress · Dust mite removal',
+    subtitle: 'Per mattress · Shampoo & deep clean',
     isLeaf: true, isFixed: true, price: 699, priceUnit: 'per mattress',
+    covered: MATTRESS_COVERED,
+    notCovered: MATTRESS_NOT_COVERED,
+    customerProvides: WET_CLEAN_PROVIDES,
   },
   {
     id: 'office', title: 'Office Cleaning', icon: 'fa-briefcase',
@@ -448,6 +529,11 @@ function buildWhatsAppMessage(guestName, guestPhone, guestEmail) {
     L.push(...bulletList(svc.addons, 6));
     L.push('');
   }
+  if (svc.notes?.length) {
+    L.push('*PLEASE NOTE*');
+    L.push(...bulletList(svc.notes, 6));
+    L.push('');
+  }
   if (svc.customerProvides?.length) {
     L.push('*CUSTOMER TO ARRANGE*');
     L.push(...bulletList(svc.customerProvides, 6));
@@ -615,7 +701,8 @@ function renderDetailsStep() {
   const unitLabel = hasQty ? svc.priceUnit.replace('per ', '') + 's' : '';
   const covered    = svc.covered    || [];
   const notCovered = svc.notCovered || [];
-  const addons     = svc.addons     || [];
+  const addons     = svc.addons     || [];   // cost extra
+  const notes      = svc.notes      || [];   // scope / info only
   const provides   = svc.customerProvides || [];
 
   return `
@@ -642,9 +729,14 @@ function renderDetailsStep() {
         ${notCovered.map(c => `<li><i class="fa-solid fa-xmark"></i> ${c}</li>`).join('')}
       </ul>` : ''}
       ${addons.length ? `
-      <div class="covered-title" style="margin-top:12px;"><i class="fa-solid fa-plus-circle" style="color:var(--orange-500);"></i> Please Note</div>
+      <div class="covered-title" style="margin-top:12px;"><i class="fa-solid fa-plus-circle" style="color:var(--orange-500);"></i> Available on request — charged extra</div>
       <ul class="addons-list">
-        ${addons.map(a => `<li><i class="fa-solid fa-info-circle"></i> ${a}</li>`).join('')}
+        ${addons.map(a => `<li><i class="fa-solid fa-plus"></i> ${a}</li>`).join('')}
+      </ul>` : ''}
+      ${notes.length ? `
+      <div class="covered-title" style="margin-top:12px;"><i class="fa-solid fa-circle-info" style="color:var(--blue-500);"></i> Please note</div>
+      <ul class="addons-list">
+        ${notes.map(n => `<li><i class="fa-solid fa-info-circle"></i> ${n}</li>`).join('')}
       </ul>` : ''}
     </div>` : ''}
 
