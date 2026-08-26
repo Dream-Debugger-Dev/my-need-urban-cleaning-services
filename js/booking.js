@@ -47,13 +47,33 @@ const FURNISHED_ADDONS = [
 ];
 
 // ─── Kitchen deep cleaning ────────────────────────────────────────────────────
-// Work common to every kitchen package.
-const KITCHEN_BASE_COVERED = [
+
+/** Empty kitchens: nothing to move, so a shorter scope. */
+const KITCHEN_EMPTY_COVERED = [
   'Cleaning of tiles, slabs, sink and windows',
-  'Cabinet cleaning — Interior & Exterior',
-  'Oil stain removal',
+  'Cabinet cleaning — Interior & Exterior, incl. oil stain removal',
   'Gas stove & hob cleaning',
 ];
+
+/** Occupied kitchens: utensils handled, plus floors and switchboards. */
+const KITCHEN_OCCUPIED_COVERED = [
+  'Utensil removal & rearrangement included',
+  'Cleaning of kitchen floors, tiles, slabs, sink and windows',
+  'Switchboard & fixtures cleaning',
+  'Cabinet cleaning — Interior & Exterior, incl. oil stain removal',
+  'Gas stove & hob cleaning',
+];
+
+const KITCHEN_NOT_COVERED = [
+  'Any repair or electrician related work',
+  'Trolley & cabinet dismantling',
+  'Wet wiping of ceiling & walls',
+  'Cleaning of the chimney motor',
+  'Cleaning of commercial kitchens',
+  'Interior cleaning & filter removal of automatic chimneys',
+];
+
+const KITCHEN_PROVIDES = ['Bucket & water', 'Power point', 'Ladder or stool'];
 
 const KITCHEN_CHIMNEY    = 'Chimney cleaning';
 const KITCHEN_FRIDGE     = 'Fridge cleaning';
@@ -66,10 +86,16 @@ const KITCHEN_APPLIANCES = 'Microwave, oven & other appliance cleaning';
  * @param {string[]} extras  - appliance items included at this tier
  */
 const kitchenCovered = (occupied, extras = []) => [
-  ...(occupied ? ['Utensil re-arrangement'] : []),
-  ...KITCHEN_BASE_COVERED,
+  ...(occupied ? KITCHEN_OCCUPIED_COVERED : KITCHEN_EMPTY_COVERED),
   ...extras,
 ];
+
+/** Every kitchen tier shares the same exclusions and prerequisites. */
+const kitchenLeaf = (node) => ({
+  ...node,
+  notCovered: KITCHEN_NOT_COVERED,
+  customerProvides: KITCHEN_PROVIDES,
+});
 
 // ─── Floor-only deep cleaning ─────────────────────────────────────────────────
 // Floors only. Everything else in a full deep clean is deliberately excluded.
@@ -92,6 +118,89 @@ const FLOOR_NOT_COVERED = [
   'Bathroom deep cleaning',
   'Balcony dusting & cleaning',
 ];
+
+// ─── Premium bungalow / villa deep cleaning ───────────────────────────────────
+// Priced by built-up area, not BHK — a bungalow is a different job to a flat.
+
+const BUNGALOW_COMMON_COVERED = [
+  'Cobweb removal & wall dusting',
+  'Kitchen cabinets Interior & Exterior wet scrubbing & wiping',
+  'Chimney Exterior & Filter Cleaning',
+  'Bathroom Deep Cleaning',
+  'Balcony Cleaning',
+  'Staircase, railing & glass cleaning',
+  'Floor Deep Cleaning with Machine',
+  'External / exterior parking floor basic cleaning',
+];
+
+const BUNGALOW_FURNISHED_COVERED = [
+  'Hall & Bedroom wardrobe Exterior wet wiping',
+  'Windows, ceiling fan, AC, switchboard, doors & furniture — Dry & wet wiping',
+  'Sofa, carpet & mattress dry vacuuming',
+  ...BUNGALOW_COMMON_COVERED,
+];
+
+const BUNGALOW_UNFURNISHED_COVERED = [
+  'Hall & Bedroom wardrobe Interior & Exterior wet wiping',
+  'Windows, ceiling fan, AC, switchboard & doors — Dry & wet wiping',
+  ...BUNGALOW_COMMON_COVERED,
+];
+
+const BUNGALOW_NOT_COVERED = [
+  'Glue / paint stains / sticker removal',
+  'Cleaning of terrace & inaccessible areas',
+  'Wet wiping of walls & ceiling',
+];
+
+const BUNGALOW_FURNISHED_ADDONS = [
+  'Fridge, microwave & oven cleaning — additional price',
+  'Sofa, carpet & dining chair shampooing — additional price',
+  'Bedroom & hall wardrobe interior cleaning — additional price',
+  'Villa exterior complete floor cleaning — additional price',
+  'Terrace cleaning — additional price',
+];
+
+const BUNGALOW_UNFURNISHED_ADDONS = [
+  'Newly completed villa cleaning — additional price',
+  'Villa exterior complete floor cleaning — additional price',
+  'Terrace cleaning — additional price',
+];
+
+/** Area bands, in display order. */
+const BUNGALOW_BANDS = [
+  'Up to 1200 sq ft',
+  '1200 – 2000 sq ft',
+  '2000 – 3000 sq ft',
+  '3000 – 4000 sq ft',
+  '4000 – 5000 sq ft',
+  '5000 – 6000 sq ft',
+  '6000 – 6800 sq ft',
+];
+
+/**
+ * Builds the 7 area tiers for a furnishing type.
+ * @param {string} furnish - 'Furnished' | 'Unfurnished'
+ * @param {Array<[number, number]>} pairs - [sellingPrice, mrp] per band
+ */
+const bungalowTiers = (furnish, pairs) =>
+  BUNGALOW_BANDS.map((band, i) => {
+    const [price, mrp] = pairs[i];
+    const isFurnished = furnish === 'Furnished';
+    return {
+      id: `bungalow-${furnish.toLowerCase()}-${i + 1}`,
+      title: band,
+      subtitle: `${furnish} bungalow / villa`,
+      icon: 'fa-ruler-combined',
+      isLeaf: true,
+      isFixed: true,
+      price,
+      mrp,
+      priceUnit: 'per visit',
+      covered: isFurnished ? BUNGALOW_FURNISHED_COVERED : BUNGALOW_UNFURNISHED_COVERED,
+      notCovered: BUNGALOW_NOT_COVERED,
+      addons: isFurnished ? BUNGALOW_FURNISHED_ADDONS : BUNGALOW_UNFURNISHED_ADDONS,
+    };
+  });
 
 // ─── Shared wet-shampoo process (sofa · mattress · carpet) ────────────────────
 
@@ -240,6 +349,38 @@ const SERVICE_CATALOG = [
     ]
   },
   {
+    id: 'bungalow', title: 'Bungalow / Villa Cleaning', icon: 'fa-building',
+    subtitle: 'Premium package · priced by area · from ₹5,799',
+    children: [
+      {
+        id: 'bungalow-unfurnished', title: 'Unfurnished Bungalow', icon: 'fa-house-chimney',
+        subtitle: 'Premium deep clean',
+        children: bungalowTiers('Unfurnished', [
+          [5799,  6373],
+          [8319,  8906],
+          [12299, 13324],
+          [15999, 16829],
+          [19000, 20117],
+          [24199, 25629],
+          [26599, 29265],
+        ]),
+      },
+      {
+        id: 'bungalow-furnished', title: 'Furnished Bungalow', icon: 'fa-couch',
+        subtitle: 'Premium deep clean',
+        children: bungalowTiers('Furnished', [
+          [6199,  7360],
+          [8699,  10362],
+          [13999, 15234],
+          [16999, 18142],
+          [22199, 24881],
+          [25199, 27213],
+          [29999, 34581],
+        ]),
+      },
+    ],
+  },
+  {
     id: 'bathroom', title: 'Bathroom Cleaning', icon: 'fa-bath',
     subtitle: 'Per bathroom · Descaling & sanitising',
     isLeaf: true, isFixed: true, price: 499, priceUnit: 'per bathroom',
@@ -256,20 +397,20 @@ const SERVICE_CATALOG = [
         id: 'kitchen-occupied', title: 'Occupied Kitchen Package', icon: 'fa-utensils',
         subtitle: 'In-use kitchen · includes utensil re-arrangement',
         children: [
-          { id: 'kitchen-occ-base',           title: 'Occupied Kitchen',      icon: 'fa-utensils',  isLeaf: true, isFixed: true, price: 1499, priceUnit: 'per visit', covered: kitchenCovered(true) },
-          { id: 'kitchen-occ-chimney',        title: 'With Chimney',          icon: 'fa-fan',       isLeaf: true, isFixed: true, price: 1899, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY]) },
-          { id: 'kitchen-occ-chimney-fridge', title: 'With Chimney & Fridge', icon: 'fa-snowflake', isLeaf: true, isFixed: true, price: 2399, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE]) },
-          { id: 'kitchen-occ-all',            title: 'With All Appliances',   icon: 'fa-blender',   isLeaf: true, isFixed: true, price: 2699, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE, KITCHEN_APPLIANCES]) },
+          kitchenLeaf({ id: 'kitchen-occ-base',           title: 'Occupied Kitchen',      icon: 'fa-utensils',  isLeaf: true, isFixed: true, price: 1499, priceUnit: 'per visit', covered: kitchenCovered(true) }),
+          kitchenLeaf({ id: 'kitchen-occ-chimney',        title: 'With Chimney',          icon: 'fa-fan',       isLeaf: true, isFixed: true, price: 1899, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY]) }),
+          kitchenLeaf({ id: 'kitchen-occ-chimney-fridge', title: 'With Chimney & Fridge', icon: 'fa-snowflake', isLeaf: true, isFixed: true, price: 2399, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE]) }),
+          kitchenLeaf({ id: 'kitchen-occ-all',            title: 'With All Appliances',   icon: 'fa-blender',   isLeaf: true, isFixed: true, price: 2699, priceUnit: 'per visit', covered: kitchenCovered(true, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE, KITCHEN_APPLIANCES]) }),
         ]
       },
       {
         id: 'kitchen-empty', title: 'Empty Kitchen Package', icon: 'fa-box-open',
         subtitle: 'Cleared kitchen · best value',
         children: [
-          { id: 'kitchen-emp-base',           title: 'Empty Kitchen',         icon: 'fa-box-open',  isLeaf: true, isFixed: true, price: 1299, priceUnit: 'per visit', covered: kitchenCovered(false) },
-          { id: 'kitchen-emp-chimney',        title: 'With Chimney',          icon: 'fa-fan',       isLeaf: true, isFixed: true, price: 1699, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY]) },
-          { id: 'kitchen-emp-chimney-fridge', title: 'With Chimney & Fridge', icon: 'fa-snowflake', isLeaf: true, isFixed: true, price: 2099, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE]) },
-          { id: 'kitchen-emp-all',            title: 'With All Appliances',   icon: 'fa-blender',   isLeaf: true, isFixed: true, price: 2499, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE, KITCHEN_APPLIANCES]) },
+          kitchenLeaf({ id: 'kitchen-emp-base',           title: 'Empty Kitchen',         icon: 'fa-box-open',  isLeaf: true, isFixed: true, price: 1299, priceUnit: 'per visit', covered: kitchenCovered(false) }),
+          kitchenLeaf({ id: 'kitchen-emp-chimney',        title: 'With Chimney',          icon: 'fa-fan',       isLeaf: true, isFixed: true, price: 1699, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY]) }),
+          kitchenLeaf({ id: 'kitchen-emp-chimney-fridge', title: 'With Chimney & Fridge', icon: 'fa-snowflake', isLeaf: true, isFixed: true, price: 2099, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE]) }),
+          kitchenLeaf({ id: 'kitchen-emp-all',            title: 'With All Appliances',   icon: 'fa-blender',   isLeaf: true, isFixed: true, price: 2499, priceUnit: 'per visit', covered: kitchenCovered(false, [KITCHEN_CHIMNEY, KITCHEN_FRIDGE, KITCHEN_APPLIANCES]) }),
         ]
       },
     ]
@@ -334,9 +475,10 @@ const SERVICE_CATALOG = [
 // Some homepage cards are marketing entry points rather than their own catalog.
 // They open an existing catalog straight away but keep their own heading, so a
 // visitor who clicked "Bungalow Cleaning" doesn't suddenly see "Deep Cleaning".
+// NOTE: 'bungalow' used to alias to the apartment deep-clean catalog. It now
+// has its own area-based catalog, so the alias was removed.
 const SERVICE_ALIASES = {
-  home:     { target: 'deep', title: 'Home Cleaning' },
-  bungalow: { target: 'deep', title: 'Bungalow Cleaning' },
+  home: { target: 'deep', title: 'Home Cleaning' },
 };
 
 // ─── State ────────────────────────────────────────────────────────────────────
