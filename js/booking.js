@@ -119,6 +119,56 @@ const FLOOR_NOT_COVERED = [
   'Balcony dusting & cleaning',
 ];
 
+// ─── Newly interior-completed house deep cleaning ─────────────────────────────
+// Post-handover clean: removes the marks interior work leaves behind.
+
+const INTERIOR_COVERED = [
+  'Sticker & sticker-residue removal',
+  'Blue marking removal',
+  'Paan stain removal',
+  'Paint mark removal',
+  'Hall & bedroom wardrobe Interior & Exterior cleaning',
+  'Windows, fans, switchboards & doors — wet wiping & dusting',
+  'Kitchen cabinets Interior & Exterior cleaning',
+  'Bathroom deep cleaning & balcony cleaning',
+  'Floor deep cleaning with machine',
+];
+
+const INTERIOR_NOT_COVERED = [
+  'Removal of interior-work debris or leftover material',
+  'Heavy or set-in stains',
+  'Wet wiping of walls & ceiling',
+  'Cleaning of terrace & inaccessible areas',
+];
+
+const INTERIOR_NOTES = [
+  'One member of the family needs to be present at the property throughout the day while our team is working.',
+  "If your home's size isn't listed, choose \"Other\" — we'll visit the site and share a quotation.",
+];
+
+const INTERIOR_PROVIDES = [
+  'Bucket & water',
+  'Power point',
+  'Drinking water',
+  'Ladder or stool (optional)',
+];
+
+/** Builds a post-interior tier. Pass price = null for the quote-based option. */
+const interiorTier = (id, title, subtitle, price, extra = {}) => ({
+  id,
+  title,
+  subtitle,
+  icon: price ? 'fa-paint-roller' : 'fa-ruler-combined',
+  isLeaf: true,
+  isFixed: !!price,
+  ...(price ? { price, priceUnit: 'per visit' } : {}),
+  covered: INTERIOR_COVERED,
+  notCovered: INTERIOR_NOT_COVERED,
+  notes: INTERIOR_NOTES,
+  customerProvides: INTERIOR_PROVIDES,
+  ...extra,
+});
+
 // ─── Premium bungalow / villa deep cleaning ───────────────────────────────────
 // Priced by built-up area, not BHK — a bungalow is a different job to a flat.
 
@@ -320,6 +370,20 @@ const floorTiers = (furnish, prices) =>
   }));
 
 const SERVICE_CATALOG = [
+  {
+    id: 'interior-done', title: 'Newly Interior-Completed House', icon: 'fa-paint-roller',
+    subtitle: 'Post-handover deep clean · from ₹5,499',
+    children: [
+      interiorTier('interior-1bhk', '1 BHK', 'Up to 700 sq ft',  5499),
+      interiorTier('interior-2bhk', '2 BHK', 'Up to 1200 sq ft', 7499),
+      interiorTier('interior-3bhk', '3 BHK', 'Up to 1800 sq ft', 9499),
+      interiorTier('interior-4bhk', '4 BHK', 'Up to 2400 sq ft', 13999),
+      interiorTier('interior-5bhk', '5 BHK', 'Up to 2800 sq ft', 17999),
+      interiorTier('interior-other', 'Other / Larger Home', 'Site visit, then quotation', null, {
+        requirementHint: 'Tell us your BHK and approximate built-up area (sq ft), and we\'ll arrange a site visit.',
+      }),
+    ],
+  },
   {
     id: 'deep', title: 'Deep Cleaning', icon: 'fa-broom',
     subtitle: 'Unfurnished & Furnished premium packages',
