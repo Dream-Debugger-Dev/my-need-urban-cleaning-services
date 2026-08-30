@@ -572,6 +572,44 @@ function findService(id, catalog) {
   return null;
 }
 
+// ─── Schedule & contact helpers ───────────────────────────────────────────────
+
+const CONTACT_FIELDS = ['name', 'email', 'phone', 'altPhone'];
+
+function emptyContact() {
+  return { date: '', name: '', email: '', phone: '', altPhone: '' };
+}
+
+/** Live schedule + contact record, created on first use. */
+function contact() {
+  if (!window._bookingContact) window._bookingContact = emptyContact();
+  return window._bookingContact;
+}
+
+/** Prefills name/email/phone from the signed-in profile, without overwriting typing. */
+function prefillContactFromProfile() {
+  const user = auth.currentUser;
+  if (!user) return;
+  const c = contact();
+  const p = window._userProfile || {};
+  if (!c.name)  c.name  = p.name  || user.displayName || '';
+  if (!c.email) c.email = p.email || user.email       || '';
+  if (!c.phone) {
+    const raw = p.phone || user.phoneNumber || '';
+    c.phone = String(raw).replace(/\D/g, '').slice(-10);
+  }
+}
+
+const yyyymmdd = d => d.toISOString().slice(0, 10);
+
+/** Friendly date for summaries and messages. */
+function prettyDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  if (isNaN(d)) return iso;
+  return d.toLocaleDateString('en-IN', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 // ─── Address helpers ──────────────────────────────────────────────────────────
 
 const ADDRESS_FIELDS = ['flat', 'building', 'street', 'landmark', 'city', 'pincode'];
@@ -679,11 +717,13 @@ function makeOrderId() {
  * WhatsApp window can be opened synchronously inside the click handler
  * (opening it after an await gets blocked by popup blockers).
  */
-async function saveBooking({ orderId, name, phone, email }) {
+async function saveBooking({ orderId }) {
   const svc  = _selectedService;
   const a    = addr();
+  const c    = contact();
   const user = auth.currentUser;
   const path = servicePath(svc.id) || [svc];
+  const { name, phone, email } = c;
 
   return addDoc(collection(db, 'bookings'), {
     orderId,
@@ -692,9 +732,12 @@ async function saveBooking({ orderId, name, phone, email }) {
 
     customerId:    user?.uid || null,
     isGuest:       !user,
-    customerName:  name  || '',
-    customerPhone: phone || '',
-    customerEmail: email || '',
+    customerName:     name  || '',
+    customerPhone:    phone || '',
+    customerAltPhone: c.altPhone || '',
+    customerEmail:    email || '',
+
+    scheduledDate: c.date || null,
 
     serviceId:   svc.id,
     serviceName: svc.title,
@@ -726,7 +769,11 @@ function bulletList(items, max = 12) {
 }
 
 // ─── Build WhatsApp message ───────────────────────────────────────────────────
-function buildWhatsAppMessage(guestName, guestPhone, guestEmail, orderId) {
+function buildWhatsAppMessage(orderId) {
+  const c = contact();
+  const guestName  = c.name;
+  const guestPhone = c.phone;
+  const guestEmail = c.email;
   const svc   = _selectedService;
   const total = getTotal();
   const qty   = hasQuantity(svc) ? _quantity : 1;
@@ -837,10 +884,18 @@ function buildWhatsAppMessage(guestName, guestPhone, guestEmail, orderId) {
     L.push('');
   }
 
+  // ── Preferred service date
+  if (c.date) {
+    L.push('*PREFERRED DATE*');
+    L.push(prettyDate(c.date));
+    L.push('');
+  }
+
   // ── Contact
   L.push('*CONTACT DETAILS*');
   L.push(`Name: ${guestName || '(not provided)'}`);
   L.push(`Phone: ${guestPhone ? (guestPhone.startsWith('+') ? guestPhone : '+91 ' + guestPhone) : '(not provided)'}`);
+  if (c.altPhone) L.push(`Alt Phone: +91 ${c.altPhone}`);
   if (guestEmail) L.push(`Email: ${guestEmail}`);
   L.push('');
 
@@ -912,15 +967,19 @@ function renderBookingStep() {
     progress.innerHTML = renderProgress(2);
     body.innerHTML = renderAddressStep();
   } else if (_step === 3) {
-    title.textContent = 'Get in Touch';
+    title.textContent = 'Schedule & Your Details';
     progress.innerHTML = renderProgress(3);
+    body.innerHTML = renderScheduleStep();
+  } else if (_step === 4) {
+    title.textContent = 'Confirm Booking';
+    progress.innerHTML = renderProgress(4);
     body.innerHTML = renderSummaryStep();
     attachSummaryEvents(body);
   }
 }
 
 function renderProgress(active) {
-  const steps = ['Service', 'Details', 'Address', 'Contact'];
+  const steps = ['Service', 'Details', 'Address', 'Schedule', 'Confirm'];
   return steps.map((s, i) => `
     <div class="bp-step ${i <= active ? 'active' : ''} ${i < active ? 'done' : ''}">
       <div class="bp-dot">${i < active ? '<i class="fa-solid fa-check"></i>' : i + 1}</div>
@@ -1208,25 +1267,85 @@ function showBookingConfirmed(orderId, { saved, isGuest }) {
  * synchronously so `window.open` stays inside the user gesture (otherwise
  * popup blockers kill it), and the Firestore write happens after.
  */
-function submitBooking({ name, phone, email, channel }) {
+function submitBooking({ channel }) {
   const orderId = makeOrderId();
   const isGuest = !auth.currentUser;
 
   if (channel === 'whatsapp') {
-    const msg = buildWhatsAppMessage(name, phone, email, orderId);
+    const msg = buildWhatsAppMessage(orderId);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   }
 
   // Show confirmation immediately; correct it if the write fails.
   showBookingConfirmed(orderId, { saved: true, isGuest });
 
-  saveBooking({ orderId, name, phone, email }).catch(err => {
+  saveBooking({ orderId }).catch(err => {
     console.error('[booking] save failed', err);
     showBookingConfirmed(orderId, { saved: false, isGuest });
   });
 }
 
-// ─── Step 3: Summary + WhatsApp / Call CTA ────────────────────────────────────
+// ─── Step 3: Schedule + customer details ──────────────────────────────────────
+function renderScheduleStep() {
+  prefillContactFromProfile();
+  const c = contact();
+  const esc = s => String(s || '').replace(/"/g, '&quot;');
+
+  const today = new Date();
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 60);
+
+  return `
+    <div class="step-section">
+      <label class="step-label">When should we come?</label>
+      <input class="field-input" type="date" id="schedDate"
+             value="${esc(c.date)}" min="${yyyymmdd(today)}" max="${yyyymmdd(maxDate)}" />
+      <p class="sched-hint" id="schedHint">
+        ${c.date ? `<i class="fa-solid fa-calendar-check"></i> ${prettyDate(c.date)}` : 'Same-day and next-day slots are usually available.'}
+      </p>
+    </div>
+
+    <div class="step-section">
+      <label class="step-label">Your details</label>
+      <div class="addr-grid">
+        <div class="addr-field addr-wide">
+          <label for="ctName">Full Name <span class="req">*</span></label>
+          <input class="field-input" id="ctName" data-contact="name" value="${esc(c.name)}"
+                 placeholder="e.g. Ramesh Kumar" autocomplete="name" />
+        </div>
+        <div class="addr-field addr-wide">
+          <label for="ctEmail">Email <span class="req">*</span></label>
+          <input class="field-input" id="ctEmail" data-contact="email" type="email" value="${esc(c.email)}"
+                 placeholder="you@email.com" autocomplete="email" />
+        </div>
+        <div class="addr-field">
+          <label for="ctPhone">Mobile Number <span class="req">*</span></label>
+          <input class="field-input" id="ctPhone" data-contact="phone" type="tel" value="${esc(c.phone)}"
+                 placeholder="10-digit mobile" maxlength="10" inputmode="numeric" autocomplete="tel" />
+        </div>
+        <div class="addr-field">
+          <label for="ctAltPhone">Alternate Number</label>
+          <input class="field-input" id="ctAltPhone" data-contact="altPhone" type="tel" value="${esc(c.altPhone)}"
+                 placeholder="Optional" maxlength="10" inputmode="numeric" />
+        </div>
+      </div>
+      <p class="sched-hint">We'll call this number to confirm your booking.</p>
+    </div>
+
+    ${!auth.currentUser ? `
+    <div class="info-chip">
+      <i class="fa-solid fa-circle-info"></i>
+      Booking as a guest is fine — create an account later to track your orders.
+    </div>` : ''}
+
+    <div class="step-btns">
+      <button class="btn btn-outline" id="backToAddressFromSched"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <button class="btn btn-primary" id="toConfirmStep">Continue <i class="fa-solid fa-arrow-right"></i></button>
+    </div>
+  `;
+}
+
+// ─── Step 4: Summary + WhatsApp / Call CTA ────────────────────────────────────
 function renderSummaryStep() {
   const svc   = _selectedService;
   const total = getTotal();
@@ -1245,6 +1364,10 @@ function renderSummaryStep() {
         ? `<div class="confirm-row"><span>Location</span><strong class="geo-ok"><i class="fa-solid fa-location-dot"></i> GPS pinned</strong></div>`
         : ''}
       ${window._bookingNotes ? `<div class="confirm-row"><span>Notes</span><strong>${window._bookingNotes}</strong></div>` : ''}
+      <div class="confirm-row"><span>Date</span><strong>${prettyDate(contact().date) || '-'}</strong></div>
+      <div class="confirm-row"><span>Name</span><strong>${contact().name || '-'}</strong></div>
+      <div class="confirm-row"><span>Email</span><strong>${contact().email || '-'}</strong></div>
+      <div class="confirm-row"><span>Mobile</span><strong>+91 ${contact().phone || '-'}${contact().altPhone ? ` · +91 ${contact().altPhone}` : ''}</strong></div>
     </div>
 
     ${svc.isFixed
@@ -1266,32 +1389,6 @@ function renderSummaryStep() {
       </a>
     </div>
 
-    <!-- WhatsApp guest/login chooser (hidden by default) -->
-    <div class="wa-options" id="waOptions" style="display:none;">
-      <p class="wa-options-label">Continue as</p>
-      <div class="wa-option-btns">
-        <button class="btn btn-outline" id="waAsGuest">
-          <i class="fa-solid fa-user"></i> Guest
-        </button>
-        <button class="btn btn-primary" id="waAsLogin">
-          <i class="fa-solid fa-circle-user"></i> Login / Sign Up
-        </button>
-      </div>
-      <div id="waGuestForm" style="display:none;">
-        <div class="field" style="margin-top:10px;">
-          <label>Your Name</label>
-          <input class="field-input" id="waGuestName" type="text" placeholder="Full name" />
-        </div>
-        <div class="field" style="margin-top:8px;">
-          <label>Phone Number</label>
-          <input class="field-input" id="waGuestPhone" type="tel" placeholder="10-digit mobile" maxlength="10" />
-        </div>
-        <button class="btn btn-whatsapp w-100" id="waGuestSend" style="margin-top:10px;">
-          <i class="fa-brands fa-whatsapp"></i> Open WhatsApp
-        </button>
-      </div>
-    </div>
-
     <div class="step-btns" style="margin-top:16px;">
       <button class="btn btn-outline" id="backToAddress"><i class="fa-solid fa-arrow-left"></i> Back</button>
     </div>
@@ -1299,62 +1396,21 @@ function renderSummaryStep() {
 }
 
 function attachSummaryEvents(body) {
-  // Back
+  // Back to Schedule & Your Details
   body.querySelector('#backToAddress')?.addEventListener('click', () => {
-    _step = 2;
+    _step = 3;
     renderBookingStep();
   });
 
-  // Logged-in customer details, if available
-  const currentUserDetails = () => {
-    const user = auth.currentUser;
-    if (!user) return null;
-    return {
-      name:  window._userProfile?.name  || user.displayName || '',
-      phone: window._userProfile?.phone || user.phoneNumber  || '',
-      email: window._userProfile?.email || user.email        || '',
-    };
-  };
-
-  // WhatsApp button — if already logged in send directly, else show options
+  // Details were already collected and validated on the Schedule step, so both
+  // channels can submit straight away — no more guest form at the last moment.
   body.querySelector('#ctaWhatsapp')?.addEventListener('click', () => {
-    const me = currentUserDetails();
-    if (me) {
-      submitBooking({ ...me, channel: 'whatsapp' });
-      return;
-    }
-    const waOptions = body.querySelector('#waOptions');
-    waOptions.style.display = waOptions.style.display === 'none' ? 'block' : 'none';
+    submitBooking({ channel: 'whatsapp' });
   });
 
-  // Call Us — still register the enquiry so phone bookings are tracked too
+  // Call Us — register the enquiry too, so phone bookings are tracked
   body.querySelector('#ctaCall')?.addEventListener('click', () => {
-    const me = currentUserDetails();
-    if (!me) return;                       // guests: nothing to attribute it to
-    submitBooking({ ...me, channel: 'call' });
-  });
-
-  // Guest option — show guest form
-  body.querySelector('#waAsGuest')?.addEventListener('click', () => {
-    body.querySelector('#waGuestForm').style.display = 'block';
-    body.querySelector('#waAsGuest').style.display = 'none';
-    body.querySelector('#waAsLogin').style.display = 'none';
-  });
-
-  // Login option — open auth modal, close booking modal
-  body.querySelector('#waAsLogin')?.addEventListener('click', () => {
-    document.getElementById('bookingModal').classList.remove('modal-open');
-    document.body.style.overflow = '';
-    openModal('authModal');
-  });
-
-  // Guest send — open WhatsApp with pre-filled message
-  body.querySelector('#waGuestSend')?.addEventListener('click', () => {
-    const name  = body.querySelector('#waGuestName')?.value.trim();
-    const phone = body.querySelector('#waGuestPhone')?.value.trim();
-    if (!name)  { showToast('Please enter your name'); return; }
-    if (!phone || phone.length !== 10) { showToast('Enter a valid 10-digit number'); return; }
-    submitBooking({ name, phone, email: '', channel: 'whatsapp' });
+    submitBooking({ channel: 'call' });
   });
 }
 
@@ -1421,6 +1477,26 @@ document.addEventListener('DOMContentLoaded', () => {
       refreshMapPreview();
     }
     if (e.target.id === 'bookingNotes') window._bookingNotes = e.target.value;
+
+    // Schedule + contact capture
+    if (e.target.id === 'schedDate') {
+      contact().date = e.target.value;
+      const hint = document.getElementById('schedHint');
+      if (hint) {
+        hint.innerHTML = e.target.value
+          ? `<i class="fa-solid fa-calendar-check"></i> ${prettyDate(e.target.value)}`
+          : 'Same-day and next-day slots are usually available.';
+      }
+    }
+    const ck = e.target.dataset?.contact;
+    if (ck && CONTACT_FIELDS.includes(ck)) {
+      let v = e.target.value;
+      if (ck === 'phone' || ck === 'altPhone') {
+        v = v.replace(/\D/g, '').slice(0, 10);
+        if (e.target.value !== v) e.target.value = v;
+      }
+      contact()[ck] = v;
+    }
   });
 
   // "Use my current location" — browser Geolocation, no API key needed
@@ -1461,6 +1537,29 @@ document.addEventListener('DOMContentLoaded', () => {
       _step = 1;
       renderBookingStep();
     }
+    // Schedule step navigation
+    if (e.target.closest('#backToAddressFromSched')) {
+      _step = 2;
+      renderBookingStep();
+      return;
+    }
+    if (e.target.closest('#toConfirmStep')) {
+      const c = contact();
+      if (!c.date)                          { showToast('Please choose a service date'); return; }
+      if (!c.name.trim())                   { showToast('Please enter your full name');  return; }
+      if (!/^\S+@\S+\.\S+$/.test(c.email))  { showToast('Please enter a valid email');    return; }
+      if (!/^\d{10}$/.test(c.phone))        { showToast('Enter a valid 10-digit mobile'); return; }
+      if (c.altPhone && !/^\d{10}$/.test(c.altPhone)) {
+        showToast('Alternate number must be 10 digits'); return;
+      }
+      if (c.altPhone && c.altPhone === c.phone) {
+        showToast('Alternate number must be different'); return;
+      }
+      _step = 4;
+      renderBookingStep();
+      return;
+    }
+
     if (e.target.closest('#toSummaryStep')) {
       window._bookingNotes = document.getElementById('bookingNotes')?.value || '';
       const a = addr();

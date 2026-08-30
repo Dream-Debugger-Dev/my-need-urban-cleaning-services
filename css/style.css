@@ -1387,3 +1387,36 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
 @media (prefers-reduced-motion: reduce) {
   .bct-dot, .bct-line { transition: none; }
 }
+
+/* ===========================
+   Booking — schedule & contact step
+   =========================== */
+.sched-hint {
+  margin: 8px 0 0;
+  font-size: .78rem;
+  color: var(--muted);
+  min-height: 1.1em;
+}
+.sched-hint .fa-calendar-check { color: #16a34a; }
+
+/* Native date input, styled to match the other fields */
+input.field-input[type="date"] {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 46px;
+  font-family: inherit;
+  font-size: .95rem;
+  color: var(--ink-900);
+  background: #fff;
+}
+input.field-input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: .6;
+  transition: opacity .2s;
+}
+input.field-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+/* 5 steps now fit tighter on small screens */
+@media (max-width: 480px) {
+  .booking-progress .bp-step span { font-size: .58rem; }
+}
