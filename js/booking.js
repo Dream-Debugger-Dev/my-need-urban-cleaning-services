@@ -1314,9 +1314,9 @@ function renderScheduleStep() {
                  placeholder="e.g. Ramesh Kumar" autocomplete="name" />
         </div>
         <div class="addr-field addr-wide">
-          <label for="ctEmail">Email <span class="req">*</span></label>
+          <label for="ctEmail">Email <span class="opt">(optional)</span></label>
           <input class="field-input" id="ctEmail" data-contact="email" type="email" value="${esc(c.email)}"
-                 placeholder="you@email.com" autocomplete="email" />
+                 placeholder="you@email.com — for your booking confirmation" autocomplete="email" />
         </div>
         <div class="addr-field">
           <label for="ctPhone">Mobile Number <span class="req">*</span></label>
@@ -1366,7 +1366,7 @@ function renderSummaryStep() {
       ${window._bookingNotes ? `<div class="confirm-row"><span>Notes</span><strong>${window._bookingNotes}</strong></div>` : ''}
       <div class="confirm-row"><span>Date</span><strong>${prettyDate(contact().date) || '-'}</strong></div>
       <div class="confirm-row"><span>Name</span><strong>${contact().name || '-'}</strong></div>
-      <div class="confirm-row"><span>Email</span><strong>${contact().email || '-'}</strong></div>
+      ${contact().email ? `<div class="confirm-row"><span>Email</span><strong>${contact().email}</strong></div>` : ''}
       <div class="confirm-row"><span>Mobile</span><strong>+91 ${contact().phone || '-'}${contact().altPhone ? ` · +91 ${contact().altPhone}` : ''}</strong></div>
     </div>
 
@@ -1545,10 +1545,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (e.target.closest('#toConfirmStep')) {
       const c = contact();
-      if (!c.date)                          { showToast('Please choose a service date'); return; }
-      if (!c.name.trim())                   { showToast('Please enter your full name');  return; }
-      if (!/^\S+@\S+\.\S+$/.test(c.email))  { showToast('Please enter a valid email');    return; }
-      if (!/^\d{10}$/.test(c.phone))        { showToast('Enter a valid 10-digit mobile'); return; }
+      if (!c.date)                   { showToast('Please choose a service date'); return; }
+      if (!c.name.trim())            { showToast('Please enter your full name');  return; }
+      if (!/^\d{10}$/.test(c.phone)) { showToast('Enter a valid 10-digit mobile'); return; }
+      // Email is optional — only validated if something was typed.
+      if (c.email.trim() && !/^\S+@\S+\.\S+$/.test(c.email.trim())) {
+        showToast('Please enter a valid email, or leave it blank'); return;
+      }
       if (c.altPhone && !/^\d{10}$/.test(c.altPhone)) {
         showToast('Alternate number must be 10 digits'); return;
       }

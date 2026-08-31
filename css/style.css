@@ -1420,3 +1420,10 @@ input.field-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacit
 @media (max-width: 480px) {
   .booking-progress .bp-step span { font-size: .58rem; }
 }
+
+/* Optional-field marker on booking labels */
+.addr-field label .opt {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: .72rem;
+}
