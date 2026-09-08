@@ -1427,3 +1427,35 @@ input.field-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacit
   font-weight: 600;
   font-size: .72rem;
 }
+
+/* ===========================
+   Booking CTA — channel guidance
+   =========================== */
+.cta-btns .btn { position: relative; }
+
+.cta-tag {
+  position: absolute;
+  top: -9px; right: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--orange-500);
+  color: #fff;
+  font-size: .6rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+
+.cta-sub {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: .78rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.cta-sub i { color: var(--blue-500); margin-top: 2px; }
+
+/* Install App button sits quietly in the header until offered */
+#installAppBtn[hidden] { display: none !important; }

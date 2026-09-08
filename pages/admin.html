@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Live Orders — MyNeedUrban Admin</title>
+
+  <link rel="icon" type="image/png" href="../assets/favicon/MyNeedUrban_favicon_v3.png" />
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <meta name="theme-color" content="#0d1b2a" />
+  <link rel="apple-touch-icon" href="../assets/pwa/apple-touch-icon.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="../css/style.css?v=20260830b" />
+
+  <style>
+    body { background: var(--surface); }
+
+    .adm-bar {
+      position: sticky; top: 0; z-index: 50;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+      padding: 12px 18px;
+      background: var(--navy-900); color: #fff;
+      box-shadow: 0 6px 20px rgba(13,27,42,.25);
+    }
+    .adm-bar img { width: 30px; height: 30px; border-radius: 7px; }
+    .adm-title { font-weight: 800; font-size: .98rem; }
+    .adm-spacer { flex: 1 1 auto; }
+
+    .adm-live {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: .74rem; font-weight: 700;
+      padding: 5px 11px; border-radius: 999px;
+      background: rgba(255,255,255,.12);
+    }
+    .adm-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #22c55e; animation: adm-pulse 1.6s ease-in-out infinite;
+    }
+    .adm-dot.off { background: #ef4444; animation: none; }
+    @keyframes adm-pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
+
+    .adm-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 13px; border-radius: 10px; cursor: pointer;
+      border: 1px solid rgba(255,255,255,.25);
+      background: rgba(255,255,255,.1); color: #fff;
+      font-family: inherit; font-weight: 700; font-size: .78rem;
+    }
+    .adm-btn:hover { background: rgba(255,255,255,.2); }
+    .adm-btn.on { background: #22c55e; border-color: #22c55e; }
+
+    .adm-wrap { max-width: 1080px; margin: 0 auto; padding: 20px 18px 80px; }
+
+    .adm-stats { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 12px; margin-bottom: 18px; }
+    .adm-stat { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; }
+    .adm-stat b { display: block; font-size: 1.5rem; font-weight: 800; color: var(--ink-900); line-height: 1.1; }
+    .adm-stat span { font-size: .74rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .adm-stat.pending b { color: var(--orange-600); }
+    .adm-stat.today b   { color: var(--blue-600); }
+
+    .adm-filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .adm-chip {
+      padding: 7px 14px; border-radius: 999px; cursor: pointer;
+      border: 1px solid var(--line); background: #fff;
+      font-family: inherit; font-weight: 700; font-size: .78rem; color: var(--ink-700);
+    }
+    .adm-chip.active { background: var(--blue-500); border-color: var(--blue-500); color: #fff; }
+
+    .adm-card {
+      background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--line);
+      border-radius: 14px; padding: 15px 17px; margin-bottom: 12px;
+    }
+    .adm-card.is-new { border-left-color: #22c55e; animation: adm-flash 2s ease-out; }
+    @keyframes adm-flash { 0% { background:#f0fdf4 } 100% { background:#fff } }
+    .adm-card.st-pending    { border-left-color: var(--orange-500); }
+    .adm-card.st-confirmed  { border-left-color: var(--blue-500); }
+    .adm-card.st-inProgress { border-left-color: #8b5cf6; }
+    .adm-card.st-completed  { border-left-color: #22c55e; }
+    .adm-card.st-cancelled  { border-left-color: #ef4444; opacity: .72; }
+
+    .adm-head { display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+    .adm-oid { font-weight: 800; font-size: .86rem; color: var(--blue-600); letter-spacing: .04em; }
+    .adm-when { font-size: .72rem; color: var(--muted); }
+    .adm-badge {
+      margin-left: auto; padding: 4px 11px; border-radius: 999px;
+      font-size: .68rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+    }
+    .b-pending { background: var(--orange-100); color: var(--orange-600); }
+    .b-confirmed { background: var(--blue-100); color: var(--blue-600); }
+    .b-inProgress { background: #f3e8ff; color: #7c3aed; }
+    .b-completed { background: #dcfce7; color: #15803d; }
+    .b-cancelled { background: #fee2e2; color: #b91c1c; }
+
+    .adm-svc { font-weight: 700; font-size: 1rem; margin: 8px 0 2px; }
+    .adm-path { font-size: .78rem; color: var(--muted); }
+    .adm-amt { font-weight: 800; color: var(--ink-900); margin-top: 6px; }
+
+    .adm-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 10px 20px; margin: 12px 0; }
+    .adm-f { font-size: .82rem; }
+    .adm-f small { display: block; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+    .adm-f span { color: var(--ink-900); }
+
+    .adm-acts { display: flex; gap: 8px 14px; flex-wrap: wrap; padding-top: 11px; border-top: 1px solid var(--line); }
+    .adm-a {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .78rem; font-weight: 700; color: var(--blue-600);
+      background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit;
+    }
+    .adm-a:hover { text-decoration: underline; }
+    .adm-a.green { color: #15803d; }
+    .adm-a.red { color: #dc2626; }
+
+    .adm-gate { max-width: 420px; margin: 90px auto; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 30px 26px; text-align: center; }
+    .adm-gate i { font-size: 2rem; color: var(--orange-500); margin-bottom: 12px; }
+    .adm-empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+    .adm-empty i { font-size: 2.4rem; opacity: .35; display: block; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <div class="adm-bar">
+    <img src="../assets/logo/MyNeedUrban_favicon_v3.png" alt="" />
+    <span class="adm-title">Live Orders</span>
+    <span class="adm-live"><span class="adm-dot off" id="liveDot"></span><span id="liveTxt">Connecting…</span></span>
+    <span class="adm-spacer"></span>
+    <button class="adm-btn" id="soundBtn" title="Alert sound for new orders">
+      <i class="fa-solid fa-bell-slash"></i> <span>Alerts off</span>
+    </button>
+    <button class="adm-btn" id="installAppBtn" hidden>
+      <i class="fa-solid fa-mobile-screen"></i> <span class="pwa-label">Install App</span>
+    </button>
+    <a class="adm-btn" href="../index.html"><i class="fa-solid fa-house"></i> Site</a>
+  </div>
+
+  <div class="adm-wrap" id="root">
+    <div class="adm-empty"><i class="fa-solid fa-spinner fa-spin"></i> Loading…</div>
+  </div>
+
+  <script type="module">
+    import {
+      auth, db, onAuthStateChanged,
+      collection, query, orderBy, onSnapshot, doc, updateDoc
+    } from '../js/firebase-config.js';
+
+    const root = document.getElementById('root');
+    const liveDot = document.getElementById('liveDot');
+    const liveTxt = document.getElementById('liveTxt');
+
+    let bookings = [];
+    let filter = 'all';
+    let seen = new Set();
+    let firstLoad = true;
+    let soundOn = false;
+
+    // ── Alert sound (WebAudio chime — no audio file needed) ────────────────
+    let audioCtx = null;
+    function chime() {
+      if (!soundOn) return;
+      try {
+        audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+        [880, 1320].forEach((f, i) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = 'sine'; o.frequency.value = f;
+          o.connect(g); g.connect(audioCtx.destination);
+          const t = audioCtx.currentTime + i * 0.18;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.35, t + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          o.start(t); o.stop(t + 0.5);
+        });
+      } catch (_) {}
+    }
+
+    const soundBtn = document.getElementById('soundBtn');
+    soundBtn.addEventListener('click', async () => {
+      soundOn = !soundOn;
+      soundBtn.classList.toggle('on', soundOn);
+      soundBtn.innerHTML = soundOn
+        ? '<i class="fa-solid fa-bell"></i> <span>Alerts on</span>'
+        : '<i class="fa-solid fa-bell-slash"></i> <span>Alerts off</span>';
+      if (soundOn) {
+        chime();                                        // unlock audio on gesture
+        if ('Notification' in window && Notification.permission === 'default') {
+          try { await Notification.requestPermission(); } catch (_) {}
+        }
+      }
+    });
+
+    function notify(b) {
+      if (!soundOn) return;
+      chime();
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('New booking · ' + (b.orderId || ''), {
+            body: `${b.serviceName || 'Service'} — ${b.customerName || ''} ${b.customerPhone || ''}`,
+            icon: '../assets/pwa/icon-192.png',
+            tag: b.orderId || String(Math.random()),
+          });
+        } catch (_) {}
+      }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, m => (
+      { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m]
+    ));
+    const inr = n => Number(n || 0).toLocaleString('en-IN');
+    const when = ts => ts?.toDate
+      ? ts.toDate().toLocaleString('en-IN', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit', hour12:true })
+      : '';
+    const isToday = ts => {
+      if (!ts?.toDate) return false;
+      const d = ts.toDate(), n = new Date();
+      return d.toDateString() === n.toDateString();
+    };
+
+    function render() {
+      const counts = {
+        all: bookings.length,
+        pending: bookings.filter(b => (b.status||'pending') === 'pending').length,
+        today: bookings.filter(b => isToday(b.createdAt)).length,
+        revenue: bookings.filter(b => b.status === 'completed').reduce((s,b) => s + (b.amount||0), 0),
+      };
+
+      const shown = filter === 'all' ? bookings : bookings.filter(b => (b.status||'pending') === filter);
+
+      root.innerHTML = `
+        <div class="adm-stats">
+          <div class="adm-stat pending"><b>${counts.pending}</b><span>Pending</span></div>
+          <div class="adm-stat today"><b>${counts.today}</b><span>Today</span></div>
+          <div class="adm-stat"><b>${counts.all}</b><span>Total orders</span></div>
+          <div class="adm-stat"><b>₹${inr(counts.revenue)}</b><span>Completed value</span></div>
+        </div>
+
+        <div class="adm-filters">
+          ${['all','pending','confirmed','inProgress','completed','cancelled'].map(f => `
+            <button class="adm-chip ${filter===f?'active':''}" data-f="${f}">
+              ${f === 'all' ? 'All' : f === 'inProgress' ? 'In Progress' : f[0].toUpperCase()+f.slice(1)}
+            </button>`).join('')}
+        </div>
+
+        ${shown.length ? shown.map(card).join('') : `
+          <div class="adm-empty"><i class="fa-solid fa-inbox"></i>No orders in this view</div>`}
+      `;
+
+      root.querySelectorAll('.adm-chip').forEach(c =>
+        c.addEventListener('click', () => { filter = c.dataset.f; render(); })
+      );
+      root.querySelectorAll('[data-status]').forEach(b =>
+        b.addEventListener('click', () => setStatus(b.dataset.id, b.dataset.status))
+      );
+    }
+
+    function card(b) {
+      const st = b.status || 'pending';
+      const phone = b.customerPhone ? String(b.customerPhone).replace(/\D/g,'').slice(-10) : '';
+      const wa = phone ? `https://wa.me/91${phone}` : null;
+      const next = { pending:'confirmed', confirmed:'inProgress', inProgress:'completed' }[st];
+      const nextLabel = { confirmed:'Confirm', inProgress:'Start work', completed:'Mark complete' }[next];
+
+      return `
+        <div class="adm-card st-${st} ${b.__isNew ? 'is-new' : ''}">
+          <div class="adm-head">
+            <div>
+              <div class="adm-oid">${esc(b.orderId || '(no id)')}</div>
+              <div class="adm-when">${esc(when(b.createdAt))} · via ${esc(b.source || 'website')}${b.isGuest ? ' · guest' : ''}</div>
+            </div>
+            <span class="adm-badge b-${st}">${st === 'inProgress' ? 'In Progress' : st}</span>
+          </div>
+
+          <div class="adm-svc">${esc(b.serviceName || '-')}</div>
+          <div class="adm-path">${esc(b.servicePath || '')}</div>
+          <div class="adm-amt">${b.amount > 0 ? '₹'+inr(b.amount) + (b.quantity>1 ? ` · qty ${b.quantity}` : '') : 'Quote requested'}</div>
+
+          <div class="adm-grid">
+            <div class="adm-f"><small>Customer</small><span>${esc(b.customerName || '-')}</span></div>
+            <div class="adm-f"><small>Phone</small><span>${phone ? '+91 '+esc(phone) : '-'}${b.customerAltPhone ? ' / +91 '+esc(b.customerAltPhone) : ''}</span></div>
+            ${b.customerEmail ? `<div class="adm-f"><small>Email</small><span>${esc(b.customerEmail)}</span></div>` : ''}
+            ${b.scheduledDate ? `<div class="adm-f"><small>Requested date</small><span>${esc(b.scheduledDate)}</span></div>` : ''}
+            <div class="adm-f"><small>Address</small><span>${esc(b.address || '-').replace(/\n/g,', ')}</span></div>
+            ${b.notes ? `<div class="adm-f"><small>Notes</small><span>${esc(b.notes)}</span></div>` : ''}
+          </div>
+
+          <div class="adm-acts">
+            ${phone ? `<a class="adm-a" href="tel:+91${phone}"><i class="fa-solid fa-phone"></i> Call</a>` : ''}
+            ${wa ? `<a class="adm-a green" href="${wa}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>` : ''}
+            ${b.mapsLink ? `<a class="adm-a" href="${esc(b.mapsLink)}" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> Map</a>` : ''}
+            ${next ? `<button class="adm-a" data-id="${b.__id}" data-status="${next}"><i class="fa-solid fa-arrow-right"></i> ${nextLabel}</button>` : ''}
+            ${st !== 'cancelled' && st !== 'completed' ? `<button class="adm-a red" data-id="${b.__id}" data-status="cancelled"><i class="fa-solid fa-xmark"></i> Cancel</button>` : ''}
+          </div>
+        </div>`;
+    }
+
+    async function setStatus(id, status) {
+      try { await updateDoc(doc(db, 'bookings', id), { status }); }
+      catch (e) { alert('Could not update: ' + e.message); }
+    }
+
+    // ── Auth gate ─────────────────────────────────────────────────────────
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        root.innerHTML = `
+          <div class="adm-gate">
+            <i class="fa-solid fa-lock"></i>
+            <h3>Admin sign-in required</h3>
+            <p style="color:var(--muted);font-size:.88rem;">
+              Please log in on the main site with an admin account, then reopen this page.
+            </p>
+            <a class="btn btn-primary" href="../index.html">Go to site</a>
+          </div>`;
+        liveTxt.textContent = 'Signed out';
+        return;
+      }
+      listen();
+    });
+
+    function listen() {
+      const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'));
+      onSnapshot(q, (snap) => {
+        liveDot.classList.remove('off');
+        liveTxt.textContent = 'Live';
+
+        const fresh = [];
+        bookings = snap.docs.map(d => {
+          const data = d.data();
+          data.__id = d.id;
+          data.__isNew = !firstLoad && !seen.has(d.id);
+          if (data.__isNew) fresh.push(data);
+          seen.add(d.id);
+          return data;
+        });
+
+        firstLoad = false;
+        render();
+        fresh.forEach(notify);
+        if (fresh.length) document.title = `(${fresh.length}) New order — MyNeedUrban`;
+      }, (err) => {
+        liveDot.classList.add('off');
+        liveTxt.textContent = 'Disconnected';
+        root.innerHTML = `
+          <div class="adm-gate">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <h3>Can't read orders</h3>
+            <p style="color:var(--muted);font-size:.88rem;">${esc(err.message)}</p>
+            <p style="color:var(--muted);font-size:.8rem;">
+              This usually means the signed-in account isn't an admin, or Firestore
+              rules block access.
+            </p>
+          </div>`;
+      });
+    }
+
+    // Clear the unread marker in the tab title when the page is focused
+    window.addEventListener('focus', () => { document.title = 'Live Orders — MyNeedUrban Admin'; });
+  </script>
+
+  <script src="../js/pwa.js?v=20260830b" defer></script>
+</body>
+</html>

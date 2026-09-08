@@ -717,7 +717,7 @@ function makeOrderId() {
  * WhatsApp window can be opened synchronously inside the click handler
  * (opening it after an await gets blocked by popup blockers).
  */
-async function saveBooking({ orderId }) {
+async function saveBooking({ orderId, channel }) {
   const svc  = _selectedService;
   const a    = addr();
   const c    = contact();
@@ -729,6 +729,7 @@ async function saveBooking({ orderId }) {
     orderId,
     status: 'pending',
     source: 'website',
+    channel: channel || 'unknown',   // 'whatsapp' | 'call' — how the customer chose to confirm
 
     customerId:    user?.uid || null,
     isGuest:       !user,
@@ -1198,7 +1199,7 @@ function renderAddressStep() {
 // ─── Booking confirmation ─────────────────────────────────────────────────────
 
 /** Replaces the modal body with a confirmation so the user isn't left stuck. */
-function showBookingConfirmed(orderId, { saved, isGuest }) {
+function showBookingConfirmed(orderId, { saved, isGuest, channel }) {
   const modal = document.getElementById('bookingModal');
   if (!modal) return;
   const title    = modal.querySelector('.booking-title');
@@ -1231,6 +1232,13 @@ function showBookingConfirmed(orderId, { saved, isGuest }) {
           message has reached our team and we'll follow up.
         </div>` : ''}
 
+      ${channel === 'call' ? `
+        <div class="booked-note">
+          <i class="fa-solid fa-phone-volume"></i>
+          Please quote <strong>${orderId}</strong> when you speak to us. You can also
+          send the details on WhatsApp so we have everything in writing.
+        </div>` : ''}
+
       ${isGuest ? `
         <div class="booked-note">
           <i class="fa-solid fa-circle-info"></i>
@@ -1238,6 +1246,10 @@ function showBookingConfirmed(orderId, { saved, isGuest }) {
         </div>` : ''}
 
       <div class="booked-actions">
+        ${channel === 'call' ? `
+          <button class="btn btn-whatsapp w-100" id="bookedSendWa">
+            <i class="fa-brands fa-whatsapp"></i> Also send details on WhatsApp
+          </button>` : ''}
         ${!isGuest && saved !== false
           ? `<a class="btn btn-primary w-100" href="pages/account.html#orders">
                <i class="fa-solid fa-truck-fast"></i> Track my order
@@ -1253,6 +1265,12 @@ function showBookingConfirmed(orderId, { saved, isGuest }) {
       await navigator.clipboard.writeText(orderId);
       showToast('Order ID copied');
     } catch { showToast('Could not copy — please note it down'); }
+  });
+
+  // Call bookings can still push the written details across afterwards.
+  body.querySelector('#bookedSendWa')?.addEventListener('click', () => {
+    const msg = buildWhatsAppMessage(orderId);
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   });
 
   body.querySelector('#bookedClose')?.addEventListener('click', () => {
@@ -1277,11 +1295,11 @@ function submitBooking({ channel }) {
   }
 
   // Show confirmation immediately; correct it if the write fails.
-  showBookingConfirmed(orderId, { saved: true, isGuest });
+  showBookingConfirmed(orderId, { saved: true, isGuest, channel });
 
-  saveBooking({ orderId }).catch(err => {
+  saveBooking({ orderId, channel }).catch(err => {
     console.error('[booking] save failed', err);
-    showBookingConfirmed(orderId, { saved: false, isGuest });
+    showBookingConfirmed(orderId, { saved: false, isGuest, channel });
   });
 }
 
@@ -1378,16 +1396,22 @@ function renderSummaryStep() {
            <div class="quote-note"><i class="fa-solid fa-comment-dots"></i> We'll share a custom quote after reviewing your requirement</div>
          </div>`}
 
-    <p class="cta-heading">How would you like to connect?</p>
+    <p class="cta-heading">How would you like to confirm?</p>
 
     <div class="cta-btns">
       <button class="btn btn-whatsapp" id="ctaWhatsapp">
         <i class="fa-brands fa-whatsapp"></i> Send on WhatsApp
+        <span class="cta-tag">Fastest</span>
       </button>
       <a class="btn btn-call" href="tel:+919613304724" id="ctaCall">
         <i class="fa-solid fa-phone"></i> Call Us
       </a>
     </div>
+    <p class="cta-sub">
+      <i class="fa-solid fa-circle-info"></i>
+      Sending on WhatsApp is the quickest way for us to confirm — please remember to
+      press send in WhatsApp.
+    </p>
 
     <div class="step-btns" style="margin-top:16px;">
       <button class="btn btn-outline" id="backToAddress"><i class="fa-solid fa-arrow-left"></i> Back</button>

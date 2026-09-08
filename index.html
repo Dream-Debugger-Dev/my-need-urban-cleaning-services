@@ -12,6 +12,15 @@
   <title>MyNeedUrban Cleaning Services — A Cleaner Home, A Happier You</title>
   <link rel="icon" type="image/png" href="assets/favicon/MyNeedUrban_favicon_v3.png" />
 
+  <!-- PWA: installable to home screen -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0d1b2a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MyNeedUrban" />
+  <link rel="apple-touch-icon" href="assets/pwa/apple-touch-icon.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
@@ -65,6 +74,9 @@
         <a href="tel:+919613304724" class="btn btn-ghost"><i class="fa-solid fa-phone"></i> Call Now</a>
         <button class="btn btn-ghost" id="headerLoginBtn"><i class="fa-solid fa-user"></i> Login</button>
         <button class="btn btn-outline" id="headerAccountBtn" style="display:none;"><i class="fa-solid fa-circle-user"></i> Account</button>
+        <button class="btn btn-ghost" id="installAppBtn" hidden>
+          <i class="fa-solid fa-mobile-screen"></i> <span class="pwa-label">Install App</span>
+        </button>
         <a href="#contact" class="btn btn-primary">Get a Free Quote</a>
         <button class="nav-toggle" id="navToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
       </div>
@@ -645,6 +657,7 @@
   </a>
 
   <script src="js/main.js?v=20260830b"></script>
+  <script src="js/pwa.js?v=20260830b" defer></script>
   <script src="js/slider.js?v=20260830b"></script>
   <script type="module" src="js/form.js?v=20260830b"></script>
   <script type="module" src="js/auth.js?v=20260830b"></script>
