@@ -8,7 +8,7 @@ import {
   RecaptchaVerifier, signInWithPhoneNumber,
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
   onAuthStateChanged, signOut,
-  doc, setDoc, getDoc, serverTimestamp
+  doc, setDoc, getDoc, updateDoc, serverTimestamp
 } from './firebase-config.js';
 
 // ─── State ───────────────────────────────────────────────────────────────────
@@ -25,6 +25,8 @@ onAuthStateChanged(auth, async (user) => {
     if (snap.exists()) {
       window._userProfile = snap.data();
     }
+    // Register FCM token for push notifications (admin browser alerts)
+    registerFcmToken(user.uid);
   }
 });
 
@@ -44,7 +46,24 @@ function updateHeaderUI(user) {
   }
 }
 
-// ─── Modal helpers ────────────────────────────────────────────────────────────
+// ─── FCM Token Registration ───────────────────────────────────────────────────
+async function registerFcmToken(uid) {
+  try {
+    const { getMessaging, getToken } = await import('https://www.gstatic.com/firebasejs/11.7.1/firebase-messaging.js');
+    const messaging = getMessaging();
+    // VAPID key from Firebase console > Project Settings > Cloud Messaging > Web Push certificates
+    const VAPID_KEY = 'BLx7pPzUiGi_Nm3ZUiIGKg1mSW_pSfYHk3XVmN5R8qVwE2LVqXoKVUyHdH6Q3oEVkP8NiSg2D9fR7JdZpMQkFcE';
+    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    if (token) {
+      await updateDoc(doc(db, 'users', uid), { fcmToken: token });
+    }
+  } catch (e) {
+    // Silently fail — FCM is optional, doesn't affect booking flow
+    console.debug('[fcm] token not saved:', e?.message);
+  }
+}
+
+
 function openModal(id) {
   document.getElementById(id)?.classList.add('modal-open');
   document.body.style.overflow = 'hidden';

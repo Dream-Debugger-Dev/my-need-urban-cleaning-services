@@ -317,6 +317,30 @@
         liveTxt.textContent = 'Signed out';
         return;
       }
+      // ── Server-side role check ──
+      try {
+        const { doc: fsDoc, getDoc } = await import('https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js');
+        const userSnap = await getDoc(fsDoc(db, 'users', user.uid));
+        const role = userSnap.data()?.role;
+        if (role !== 'admin') {
+          root.innerHTML = `
+            <div class="adm-gate">
+              <i class="fa-solid fa-ban"></i>
+              <h3>Access Denied</h3>
+              <p style="color:var(--muted);font-size:.88rem;">
+                Your account doesn't have admin permissions.
+                Contact the site owner to get access.
+              </p>
+              <a class="btn btn-outline" href="../index.html">Go to site</a>
+            </div>`;
+          liveTxt.textContent = 'Access denied';
+          return;
+        }
+      } catch (e) {
+        root.innerHTML = `<div class="adm-gate"><i class="fa-solid fa-triangle-exclamation"></i>
+          <h3>Could not verify role</h3><p style="color:var(--muted);font-size:.88rem;">${e.message}</p></div>`;
+        return;
+      }
       listen();
     });
 
