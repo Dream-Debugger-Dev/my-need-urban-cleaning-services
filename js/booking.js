@@ -533,6 +533,34 @@ const SERVICE_CATALOG = [
       },
     ],
   },
+  {
+    id: 'commercial', title: 'Other Commercial Cleaning', icon: 'fa-store',
+    subtitle: 'Salon, Hostel, Clinic, Restaurant & more · pricing after site visit',
+    isLeaf: true,
+    isFixed: false,
+    isCommercial: true,     // flag used by renderDetailsStep
+    requirementHint: 'Describe your space, approximate area (sq ft), number of rooms/floors, and any special requirements.',
+    covered: [
+      'Full interior cleaning of all rooms and common areas',
+      'Floor scrubbing and mopping',
+      'Dusting of furniture, fixtures, shelves and fittings',
+      'Ceiling fan, AC vent and switchboard cleaning',
+      'Restroom / washroom deep cleaning and sanitising',
+      'Glass, mirror and partition cleaning',
+      'Waste disposal and bin cleaning',
+    ],
+    notCovered: [
+      'Cleaning of exterior facade or roof',
+      'Medical equipment or specialised lab equipment cleaning',
+      'Pest control or fumigation',
+      'Heavy machinery or industrial equipment cleaning',
+    ],
+    notes: [
+      'Pricing and quotation will be finalised after our team visits your premises.',
+      'Please ensure access to all areas that need cleaning before the visit.',
+      'One staff member should be available on site during the cleaning.',
+    ],
+  },
 ];
 
 // ─── Service card aliases ─────────────────────────────────────────────────────
@@ -552,6 +580,8 @@ let _quantity = 1;
 let _currentCatalog = null;
 let _entryTitle = null;      // heading to show for the aliased entry level
 let _entryCatalogId = null;  // catalog id the heading applies to
+let _selectedVenueType = ''; // for commercial cleaning — which venue type was chosen
+let _customVenueName = '';   // free-text when "Other" is picked
 
 const WHATSAPP_NUMBER = '919613304724'; // wa.me format: no + prefix
 
@@ -744,6 +774,7 @@ async function saveBooking({ orderId, channel }) {
     serviceName: svc.title,
     servicePath: path.map(n => n.title).join(' > '),
     enquiredVia: (_entryTitle && _entryTitle !== path[0]?.title) ? _entryTitle : null,
+    venueType:   svc.isCommercial ? (_selectedVenueType === 'other' ? _customVenueName || 'Other' : _selectedVenueType) : null,
 
     pricingType: svc.isFixed ? 'fixed' : 'quote',
     priceUnit:   svc.priceUnit || null,
@@ -808,6 +839,15 @@ function buildWhatsAppMessage(orderId) {
   L.push('*SERVICE*');
   L.push(crumb);
   if (viaAlias) L.push(`_(enquired via "${viaAlias}")_`);
+  // For commercial cleaning — show the venue type prominently
+  if (svc.isCommercial && _selectedVenueType) {
+    const VENUE_LABELS: Record<string, string> = {
+      salon: 'Salon / Spa', hostel: 'Hostel / PG', clinic: 'Clinic / Pharmacy',
+      restaurant: 'Restaurant / Dining Hall', shop: 'Shop / Showroom',
+      other: _customVenueName || 'Other',
+    };
+    L.push(`*Venue type:* ${VENUE_LABELS[_selectedVenueType] || _selectedVenueType}`);
+  }
   L.push('');
 
   // ── Pricing
@@ -917,6 +957,8 @@ export function openBooking(serviceId) {
   _currentCatalog = null;
   _entryTitle = null;
   _entryCatalogId = null;
+  _selectedVenueType = '';
+  _customVenueName = '';
   // Address is customer-specific, so keep it between bookings in the same
   // session (saves re-typing six fields). Notes are service-specific, so clear.
   window._bookingAddress = composeAddress();
@@ -1080,6 +1122,47 @@ function renderDetailsStep() {
       <small class="provide-note">Please keep these ready so our team can start on time.</small>
     </div>` : ''}
 
+    ${svc.isCommercial ? `
+    <!-- ── Venue type picker ── -->
+    <div class="venue-picker step-section">
+      <label class="step-label">Select your venue type <span class="req">*</span></label>
+      <div class="venue-grid" id="venueGrid">
+        ${[
+          { id: 'salon',      icon: 'fa-scissors',        label: 'Salon / Spa' },
+          { id: 'hostel',     icon: 'fa-bed',              label: 'Hostel / PG' },
+          { id: 'clinic',     icon: 'fa-stethoscope',      label: 'Clinic / Pharmacy' },
+          { id: 'restaurant', icon: 'fa-utensils',         label: 'Restaurant / Dining Hall' },
+          { id: 'shop',       icon: 'fa-shop',             label: 'Shop / Showroom' },
+          { id: 'other',      icon: 'fa-ellipsis',         label: 'Other' },
+        ].map(v => `
+          <button class="venue-tile ${_selectedVenueType === v.id ? 'selected' : ''}"
+                  data-venue="${v.id}" type="button">
+            <i class="fa-solid ${v.icon}"></i>
+            <span>${v.label}</span>
+          </button>`).join('')}
+      </div>
+      <p class="venue-error" id="venueError"></p>
+
+      <!-- Custom name input — shown only when "Other" is selected -->
+      <div id="venueOtherWrap" style="display:${_selectedVenueType === 'other' ? 'block' : 'none'}; margin-top:12px;">
+        <label class="step-label" for="venueOtherInput">Describe your venue <span class="req">*</span></label>
+        <input class="field-input" id="venueOtherInput" type="text"
+               placeholder="e.g. Co-working space, gym, daycare centre…"
+               value="${_customVenueName}" maxlength="80" />
+      </div>
+
+      <!-- Space description — always visible once a venue is picked -->
+      <div id="venueDescWrap" style="display:${_selectedVenueType ? 'block' : 'none'}; margin-top:14px;">
+        <label class="step-label" for="venueDesc">Describe your space <span class="opt">(optional)</span></label>
+        <textarea class="field-input" id="venueDesc" rows="3"
+          placeholder="Approximate area (sq ft), number of rooms / floors, current condition, and anything else our team should know.">${window._bookingNotes || ''}</textarea>
+        <p class="venue-note">
+          <i class="fa-solid fa-circle-info"></i>
+          Pricing and quotation will be confirmed after our team visits your premises.
+        </p>
+      </div>
+    </div>` : ''}
+
     ${hasQty ? `
     <div class="step-section">
       <label class="step-label">Number of ${unitLabel}</label>
@@ -1099,6 +1182,7 @@ function renderDetailsStep() {
 }
 
 function attachDetailsEvents(body) {
+  // Quantity
   body.querySelector('#qtyMinus')?.addEventListener('click', () => {
     if (_quantity > 1) { _quantity--; renderBookingStep(); }
   });
@@ -1106,11 +1190,59 @@ function attachDetailsEvents(body) {
     _quantity++;
     renderBookingStep();
   });
+
+  // Back to catalog
   body.querySelector('#backToCatalog')?.addEventListener('click', () => {
     _step = 0;
     renderBookingStep();
   });
+
+  // ── Commercial venue picker interactions ──
+  body.querySelectorAll('.venue-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      _selectedVenueType = tile.dataset.venue;
+      // Highlight selection
+      body.querySelectorAll('.venue-tile').forEach(t => t.classList.remove('selected'));
+      tile.classList.add('selected');
+      // Show / hide "Other" text input
+      const otherWrap = body.querySelector('#venueOtherWrap');
+      const descWrap  = body.querySelector('#venueDescWrap');
+      if (otherWrap) otherWrap.style.display = _selectedVenueType === 'other' ? 'block' : 'none';
+      if (descWrap)  descWrap.style.display  = 'block';
+      // Clear any previous validation error
+      const err = body.querySelector('#venueError');
+      if (err) err.textContent = '';
+    });
+  });
+
+  // Live-save custom venue name
+  body.querySelector('#venueOtherInput')?.addEventListener('input', e => {
+    _customVenueName = e.target.value;
+  });
+
+  // Live-save space description into _bookingNotes
+  body.querySelector('#venueDesc')?.addEventListener('input', e => {
+    window._bookingNotes = e.target.value;
+  });
+
+  // Continue — validate commercial venue selection before proceeding
   body.querySelector('#toAddressStep')?.addEventListener('click', () => {
+    if (_selectedService?.isCommercial) {
+      if (!_selectedVenueType) {
+        const err = body.querySelector('#venueError');
+        if (err) err.textContent = 'Please select a venue type to continue.';
+        return;
+      }
+      if (_selectedVenueType === 'other' && !_customVenueName.trim()) {
+        const err = body.querySelector('#venueError');
+        if (err) err.textContent = 'Please describe your venue type.';
+        body.querySelector('#venueOtherInput')?.focus();
+        return;
+      }
+      // Persist the description textarea before leaving
+      const desc = body.querySelector('#venueDesc');
+      if (desc) window._bookingNotes = desc.value;
+    }
     _step = 2;
     renderBookingStep();
   });

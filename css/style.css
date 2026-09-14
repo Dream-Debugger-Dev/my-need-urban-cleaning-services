@@ -1459,3 +1459,53 @@ input.field-input[type="date"]::-webkit-calendar-picker-indicator:hover { opacit
 
 /* Install App button sits quietly in the header until offered */
 #installAppBtn[hidden] { display: none !important; }
+
+/* ── Commercial venue picker ─────────────────────────────────────────────── */
+.venue-picker { margin-bottom: 4px; }
+
+.venue-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+@media (max-width: 480px) {
+  .venue-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.venue-tile {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 8px;
+  background: #fff; border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm); cursor: pointer;
+  font-family: inherit; font-size: .8rem; font-weight: 700;
+  color: var(--ink-700); text-align: center;
+  transition: border-color .18s, background .18s, color .18s, box-shadow .18s;
+}
+.venue-tile i {
+  font-size: 1.4rem; color: var(--blue-400);
+  transition: color .18s;
+}
+.venue-tile:hover {
+  border-color: var(--blue-400);
+  box-shadow: var(--shadow-sm);
+}
+.venue-tile.selected {
+  border-color: var(--blue-500);
+  background: var(--blue-100);
+  color: var(--blue-700);
+}
+.venue-tile.selected i { color: var(--blue-600); }
+
+.venue-error {
+  color: #dc2626; font-size: .82rem;
+  min-height: 1em; margin: 6px 0 0;
+}
+
+.venue-note {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: var(--orange-100); border-radius: 10px;
+  padding: 10px 14px; margin-top: 10px;
+  font-size: .82rem; color: var(--orange-600); font-weight: 600;
+}
+.venue-note i { flex-shrink: 0; margin-top: 2px; }
