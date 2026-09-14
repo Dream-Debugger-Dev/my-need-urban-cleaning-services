@@ -841,7 +841,7 @@ function buildWhatsAppMessage(orderId) {
   if (viaAlias) L.push(`_(enquired via "${viaAlias}")_`);
   // For commercial cleaning — show the venue type prominently
   if (svc.isCommercial && _selectedVenueType) {
-    const VENUE_LABELS: Record<string, string> = {
+    const VENUE_LABELS = {
       salon: 'Salon / Spa', hostel: 'Hostel / PG', clinic: 'Clinic / Pharmacy',
       restaurant: 'Restaurant / Dining Hall', shop: 'Shop / Showroom',
       other: _customVenueName || 'Other',
