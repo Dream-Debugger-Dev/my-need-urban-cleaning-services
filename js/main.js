@@ -19,14 +19,32 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
-  // Mobile nav toggle
+  // Mobile nav toggle. The drawer is #headerCollapse (nav links + the secondary
+  // buttons); older pages that only have #nav still work via the fallback.
   const nav = document.getElementById('nav');
+  const drawer = document.getElementById('headerCollapse') || nav;
   const navToggle = document.getElementById('navToggle');
-  if (navToggle && nav) {
-    navToggle.addEventListener('click', () => nav.classList.toggle('open'));
-    nav.querySelectorAll('a').forEach(a =>
-      a.addEventListener('click', () => nav.classList.remove('open'))
+  if (navToggle && drawer) {
+    const setOpen = (open) => {
+      drawer.classList.toggle('open', open);
+      navToggle.setAttribute('aria-expanded', String(open));
+    };
+    navToggle.addEventListener('click', () => setOpen(!drawer.classList.contains('open')));
+
+    // Close after picking a link, or after tapping any button inside the drawer
+    drawer.querySelectorAll('a, button').forEach(el =>
+      el.addEventListener('click', () => setOpen(false))
     );
+
+    // Close on Escape, and on outside click
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && drawer.classList.contains('open')) setOpen(false);
+    });
+    document.addEventListener('click', (e) => {
+      if (!drawer.classList.contains('open')) return;
+      if (drawer.contains(e.target) || navToggle.contains(e.target)) return;
+      setOpen(false);
+    });
   }
 
   // Active nav link on scroll (scrollspy)

@@ -40,11 +40,11 @@
   <!-- NOTE: ?v= is a cache-buster. GitHub Pages serves assets with
        Cache-Control: max-age=600, so bump this value on every deploy that
        changes CSS/JS or returning visitors keep the stale file for 10 min. -->
-  <link rel="stylesheet" href="css/style.css?v=20260915" />
-  <link rel="stylesheet" href="css/animations.css?v=20260915" />
+  <link rel="stylesheet" href="css/style.css?v=20260916" />
+  <link rel="stylesheet" href="css/animations.css?v=20260916" />
   <!-- Seasonal layer. Every rule is scoped to [data-theme="ganesh"], so
        deleting this line + js/ganesh.js restores the site exactly. -->
-  <link rel="stylesheet" href="css/ganesh.css?v=20260915" />
+  <link rel="stylesheet" href="css/ganesh.css?v=20260916" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;700&display=swap" rel="stylesheet" />
 
   <script type="application/ld+json">
@@ -93,25 +93,42 @@
         </span>
       </a>
 
-      <nav class="nav" id="nav">
-        <a href="#home">Home</a>
-        <a href="#about">About</a>
-        <a href="#services">Services</a>
-        <a href="#gallery">Gallery</a>
-        <a href="#reviews">Reviews</a>
-        <a href="#faq">FAQ</a>
-        <a href="#contact">Contact</a>
-      </nav>
+      <!-- Collapses into the hamburger drawer below 1100px. Holds the nav AND
+           the secondary buttons, so Call Now / Login / Install stay reachable
+           on a phone rather than being display:none'd out of existence. -->
+      <div class="header-collapse" id="headerCollapse">
+        <nav class="nav" id="nav">
+          <a href="#home">Home</a>
+          <a href="#about">About</a>
+          <a href="#services">Services</a>
+          <a href="#gallery">Gallery</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#faq">FAQ</a>
+          <a href="#contact">Contact</a>
+        </nav>
 
-      <div class="header-cta">
-        <a href="tel:+919613304724" class="btn btn-ghost"><i class="fa-solid fa-phone"></i> Call Now</a>
-        <button class="btn btn-ghost" id="headerLoginBtn"><i class="fa-solid fa-user"></i> Login</button>
-        <button class="btn btn-outline" id="headerAccountBtn" style="display:none;"><i class="fa-solid fa-circle-user"></i> Account</button>
-        <button class="btn btn-ghost" id="installAppBtn" hidden>
-          <i class="fa-solid fa-mobile-screen"></i> <span class="pwa-label">Install App</span>
+        <div class="header-cta">
+          <a href="tel:+919613304724" class="btn btn-ghost"><i class="fa-solid fa-phone"></i> Call Now</a>
+          <button class="btn btn-ghost" id="headerLoginBtn"><i class="fa-solid fa-user"></i> Login</button>
+          <button class="btn btn-outline" id="headerAccountBtn" style="display:none;">
+            <i class="fa-solid fa-circle-user"></i> <span class="acct-label">Account</span>
+          </button>
+          <button class="btn btn-ghost" id="installAppBtn" hidden>
+            <i class="fa-solid fa-mobile-screen"></i> <span class="pwa-label">Install App</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Always visible in the bar, at every width -->
+      <div class="header-actions">
+        <a href="#contact" class="btn btn-primary header-quote">
+          <span class="hq-long">Get a Free Quote</span>
+          <span class="hq-short">Quote</span>
+        </a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menu"
+                aria-expanded="false" aria-controls="headerCollapse">
+          <i class="fa-solid fa-bars"></i>
         </button>
-        <a href="#contact" class="btn btn-primary">Get a Free Quote</a>
-        <button class="nav-toggle" id="navToggle" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
       </div>
     </div>
   </header>
@@ -680,13 +697,13 @@
     <span class="gn-t-label">Festive</span>
   </button>
 
-  <script src="js/main.js?v=20260915"></script>
-  <script src="js/pwa.js?v=20260915" defer></script>
-  <script src="js/slider.js?v=20260915"></script>
-  <script src="js/ganesh.js?v=20260915" defer></script>
-  <script type="module" src="js/form.js?v=20260915"></script>
-  <script type="module" src="js/auth.js?v=20260915"></script>
-  <script type="module" src="js/booking.js?v=20260915"></script>
+  <script src="js/main.js?v=20260916"></script>
+  <script src="js/pwa.js?v=20260916" defer></script>
+  <script src="js/slider.js?v=20260916"></script>
+  <script src="js/ganesh.js?v=20260916" defer></script>
+  <script type="module" src="js/form.js?v=20260916"></script>
+  <script type="module" src="js/auth.js?v=20260916"></script>
+  <script type="module" src="js/booking.js?v=20260916"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">

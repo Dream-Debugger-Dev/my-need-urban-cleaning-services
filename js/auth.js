@@ -38,8 +38,20 @@ function updateHeaderUI(user) {
   if (user) {
     loginBtn.style.display = 'none';
     accountBtn.style.display = 'inline-flex';
-    const name = window._userProfile?.name || user.email || user.phoneNumber || 'Account';
-    accountBtn.innerHTML = `<i class="fa-solid fa-circle-user"></i> ${name.split(' ')[0]}`;
+
+    const raw = window._userProfile?.name || user.displayName ||
+                user.email || user.phoneNumber || 'Account';
+    // An email has no spaces, so the old split(' ')[0] returned the WHOLE
+    // address and blew the header past the screen edge on phones. Take the
+    // local part for emails, the first word otherwise, then cap the length.
+    let label = raw.includes('@') ? raw.split('@')[0] : raw.trim().split(/\s+/)[0];
+    if (label.length > 14) label = label.slice(0, 13) + '…';
+
+    // Built with textContent, not innerHTML: the name comes from the user's own
+    // Firestore profile and must not be able to inject markup.
+    accountBtn.innerHTML = '<i class="fa-solid fa-circle-user"></i> <span class="acct-label"></span>';
+    accountBtn.querySelector('.acct-label').textContent = label;
+    accountBtn.title = raw;
   } else {
     loginBtn.style.display = 'inline-flex';
     accountBtn.style.display = 'none';

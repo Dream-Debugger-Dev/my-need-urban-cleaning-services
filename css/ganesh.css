@@ -287,6 +287,10 @@ html:not([data-theme="ganesh"]) #gnVideo { display: none !important; }
 [data-theme="ganesh"] .nav a.active { color: var(--vermillion); }
 [data-theme="ganesh"] .nav a::after { background: var(--grad-primary); }
 [data-theme="ganesh"] .header-cta .btn-ghost { color: #6b3b2a; }
+/* The desktop group divider is drawn for a dark bar; recolour it for cream. */
+@media (min-width: 1281px) {
+  [data-theme="ganesh"] .header-collapse .header-cta { border-left-color: rgba(193, 39, 45, .22); }
+}
 [data-theme="ganesh"] .header-cta .btn-ghost:hover { color: var(--vermillion); }
 [data-theme="ganesh"] .nav-toggle {
   color: var(--maroon);
@@ -295,14 +299,16 @@ html:not([data-theme="ganesh"]) #gnVideo { display: none !important; }
 }
 [data-theme="ganesh"] .brand-logo { filter: drop-shadow(0 3px 9px rgba(245,166,35,.55)); }
 
-/* The mobile drop-down panel inherits --navy-900 (now plum) from the base, which
-   would hang a dark sheet off a cream bar. Keep it cream to match. */
-@media (max-width: 960px) {
-  [data-theme="ganesh"] .nav {
+/* The drawer inherits --navy-900 (now plum) from the base, which would hang a
+   dark sheet off a cream bar. Keep it cream to match. Breakpoint tracks
+   .header-collapse in style.css. */
+@media (max-width: 1100px) {
+  [data-theme="ganesh"] .header-collapse {
     background: #fffaf0;
     border-top-color: rgba(212, 175, 55, .35);
   }
-  [data-theme="ganesh"] .nav a { border-bottom-color: rgba(212, 175, 55, .22); }
+  [data-theme="ganesh"] .header-collapse .nav a { border-bottom-color: rgba(212, 175, 55, .22); }
+  [data-theme="ganesh"] .header-collapse .header-cta { border-top-color: rgba(212, 175, 55, .3); }
 }
 
 /* ── Hero ───────────────────────────────────────────────────────────────── */
