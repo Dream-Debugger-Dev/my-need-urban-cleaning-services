@@ -700,7 +700,7 @@ const SERVICE_CATALOG = [
   },
   {
     id: 'commercial', title: 'Other Commercial Cleaning', icon: 'fa-store',
-    subtitle: 'Salon, Hostel, Clinic, Restaurant & more · pricing after site visit',
+    subtitle: 'Salon, hostel, bank, shop, restaurant, school & more · pricing after site visit',
     isLeaf: true,
     isFixed: false,
     isCommercial: true,     // flag used by renderDetailsStep
@@ -747,6 +747,36 @@ let _entryTitle = null;      // heading to show for the aliased entry level
 let _entryCatalogId = null;  // catalog id the heading applies to
 let _selectedVenueType = ''; // for commercial cleaning — which venue type was chosen
 let _customVenueName = '';   // free-text when "Other" is picked
+
+/**
+ * Venue types for Other Commercial Cleaning.
+ * Single source of truth — the tile picker and the WhatsApp label both read
+ * this, so they can't drift apart. `ask` tailors the description prompt.
+ */
+const VENUE_TYPES = [
+  { id: 'salon',      icon: 'fa-scissors',         label: 'Salon / Spa' },
+  { id: 'hostel',     icon: 'fa-bed',              label: 'Hostel / PG' },
+  { id: 'clinic',     icon: 'fa-stethoscope',      label: 'Clinic / Pharmacy' },
+  { id: 'bank',       icon: 'fa-building-columns', label: 'Banking Branch' },
+  { id: 'shop',       icon: 'fa-shop',             label: 'Small Shop / Showroom' },
+  { id: 'restaurant', icon: 'fa-utensils',         label: 'Restaurant / Dining Hall' },
+  { id: 'chairs',     icon: 'fa-chair',            label: 'Restaurant Chairs',
+    ask: 'How many chairs need cleaning, and what material are they (fabric, leather, plastic)?' },
+  { id: 'school',     icon: 'fa-school',           label: 'Small School' },
+  { id: 'other',      icon: 'fa-ellipsis',         label: 'Other' },
+];
+
+const DEFAULT_VENUE_ASK =
+  'Approximate area (sq ft), number of rooms / floors, current condition, and anything else our team should know.';
+
+/** Display label for a venue id, falling back to the customer's own wording. */
+const venueLabel = (id) => id === 'other'
+  ? (_customVenueName || 'Other')
+  : (VENUE_TYPES.find(v => v.id === id)?.label || id);
+
+/** Description prompt for a venue id. */
+const venueAsk = (id) =>
+  VENUE_TYPES.find(v => v.id === id)?.ask || DEFAULT_VENUE_ASK;
 
 const WHATSAPP_NUMBER = '919613304724'; // wa.me format: no + prefix
 
@@ -1006,12 +1036,7 @@ function buildWhatsAppMessage(orderId) {
   if (viaAlias) L.push(`_(enquired via "${viaAlias}")_`);
   // For commercial cleaning — show the venue type prominently
   if (svc.isCommercial && _selectedVenueType) {
-    const VENUE_LABELS = {
-      salon: 'Salon / Spa', hostel: 'Hostel / PG', clinic: 'Clinic / Pharmacy',
-      restaurant: 'Restaurant / Dining Hall', shop: 'Shop / Showroom',
-      other: _customVenueName || 'Other',
-    };
-    L.push(`*Venue type:* ${VENUE_LABELS[_selectedVenueType] || _selectedVenueType}`);
+    L.push(`*Venue type:* ${venueLabel(_selectedVenueType)}`);
   }
   L.push('');
 
@@ -1292,14 +1317,7 @@ function renderDetailsStep() {
     <div class="venue-picker step-section">
       <label class="step-label">Select your venue type <span class="req">*</span></label>
       <div class="venue-grid" id="venueGrid">
-        ${[
-          { id: 'salon',      icon: 'fa-scissors',        label: 'Salon / Spa' },
-          { id: 'hostel',     icon: 'fa-bed',              label: 'Hostel / PG' },
-          { id: 'clinic',     icon: 'fa-stethoscope',      label: 'Clinic / Pharmacy' },
-          { id: 'restaurant', icon: 'fa-utensils',         label: 'Restaurant / Dining Hall' },
-          { id: 'shop',       icon: 'fa-shop',             label: 'Shop / Showroom' },
-          { id: 'other',      icon: 'fa-ellipsis',         label: 'Other' },
-        ].map(v => `
+        ${VENUE_TYPES.map(v => `
           <button class="venue-tile ${_selectedVenueType === v.id ? 'selected' : ''}"
                   data-venue="${v.id}" type="button">
             <i class="fa-solid ${v.icon}"></i>
@@ -1320,7 +1338,7 @@ function renderDetailsStep() {
       <div id="venueDescWrap" style="display:${_selectedVenueType ? 'block' : 'none'}; margin-top:14px;">
         <label class="step-label" for="venueDesc">Describe your space <span class="opt">(optional)</span></label>
         <textarea class="field-input" id="venueDesc" rows="3"
-          placeholder="Approximate area (sq ft), number of rooms / floors, current condition, and anything else our team should know.">${window._bookingNotes || ''}</textarea>
+          placeholder="${venueAsk(_selectedVenueType)}">${window._bookingNotes || ''}</textarea>
         <p class="venue-note">
           <i class="fa-solid fa-circle-info"></i>
           Pricing and quotation will be confirmed after our team visits your premises.
@@ -1374,6 +1392,9 @@ function attachDetailsEvents(body) {
       const descWrap  = body.querySelector('#venueDescWrap');
       if (otherWrap) otherWrap.style.display = _selectedVenueType === 'other' ? 'block' : 'none';
       if (descWrap)  descWrap.style.display  = 'block';
+      // Tailor the description prompt (e.g. chairs need a count, not sq ft)
+      const desc = body.querySelector('#venueDesc');
+      if (desc) desc.placeholder = venueAsk(_selectedVenueType);
       // Clear any previous validation error
       const err = body.querySelector('#venueError');
       if (err) err.textContent = '';
