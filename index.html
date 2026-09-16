@@ -40,11 +40,11 @@
   <!-- NOTE: ?v= is a cache-buster. GitHub Pages serves assets with
        Cache-Control: max-age=600, so bump this value on every deploy that
        changes CSS/JS or returning visitors keep the stale file for 10 min. -->
-  <link rel="stylesheet" href="css/style.css?v=20260916" />
-  <link rel="stylesheet" href="css/animations.css?v=20260916" />
+  <link rel="stylesheet" href="css/style.css?v=20260917" />
+  <link rel="stylesheet" href="css/animations.css?v=20260917" />
   <!-- Seasonal layer. Every rule is scoped to [data-theme="ganesh"], so
        deleting this line + js/ganesh.js restores the site exactly. -->
-  <link rel="stylesheet" href="css/ganesh.css?v=20260916" />
+  <link rel="stylesheet" href="css/ganesh.css?v=20260917" />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;700&display=swap" rel="stylesheet" />
 
   <script type="application/ld+json">
@@ -107,14 +107,22 @@
           <a href="#contact">Contact</a>
         </nav>
 
+        <!-- .hdr-compact buttons drop their text label on the full desktop bar
+             (icon + tooltip only) — with all four buttons showing there is not
+             room for 7 nav links plus four full-width labels in 1180px. They
+             keep their labels inside the drawer, where there is space. -->
         <div class="header-cta">
-          <a href="tel:+919613304724" class="btn btn-ghost"><i class="fa-solid fa-phone"></i> Call Now</a>
+          <a href="tel:+919613304724" class="btn btn-ghost hdr-compact"
+             aria-label="Call 9613304724" title="Call 9613304724">
+            <i class="fa-solid fa-phone"></i> <span class="hdr-label">Call Now</span>
+          </a>
           <button class="btn btn-ghost" id="headerLoginBtn"><i class="fa-solid fa-user"></i> Login</button>
           <button class="btn btn-outline" id="headerAccountBtn" style="display:none;">
             <i class="fa-solid fa-circle-user"></i> <span class="acct-label">Account</span>
           </button>
-          <button class="btn btn-ghost" id="installAppBtn" hidden>
-            <i class="fa-solid fa-mobile-screen"></i> <span class="pwa-label">Install App</span>
+          <button class="btn btn-ghost hdr-compact" id="installAppBtn" hidden
+                  aria-label="Install the MyNeedUrban app" title="Install the MyNeedUrban app">
+            <i class="fa-solid fa-mobile-screen"></i> <span class="pwa-label hdr-label">Install App</span>
           </button>
         </div>
       </div>
@@ -697,13 +705,13 @@
     <span class="gn-t-label">Festive</span>
   </button>
 
-  <script src="js/main.js?v=20260916"></script>
-  <script src="js/pwa.js?v=20260916" defer></script>
-  <script src="js/slider.js?v=20260916"></script>
-  <script src="js/ganesh.js?v=20260916" defer></script>
-  <script type="module" src="js/form.js?v=20260916"></script>
-  <script type="module" src="js/auth.js?v=20260916"></script>
-  <script type="module" src="js/booking.js?v=20260916"></script>
+  <script src="js/main.js?v=20260917"></script>
+  <script src="js/pwa.js?v=20260917" defer></script>
+  <script src="js/slider.js?v=20260917"></script>
+  <script src="js/ganesh.js?v=20260917" defer></script>
+  <script type="module" src="js/form.js?v=20260917"></script>
+  <script type="module" src="js/auth.js?v=20260917"></script>
+  <script type="module" src="js/booking.js?v=20260917"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">

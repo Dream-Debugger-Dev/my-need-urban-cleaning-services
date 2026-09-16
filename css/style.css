@@ -668,17 +668,29 @@ p { margin: 0 0 .6rem; color: var(--ink-700); }
   display: flex; align-items: center; gap: 22px;
   min-width: 0; flex: 1 1 auto; justify-content: flex-end;
 }
-.header-collapse .nav { flex: 0 1 auto; min-width: 0; }
+/* Neither group may shrink below its content. Allowing the nav to shrink meant
+   its links spilled out of the box and painted straight over "Call Now" — and
+   because a spill does not change scrollWidth, no overflow check could see it.
+   With both fixed, any future excess becomes real, measurable overflow. */
+.header-collapse .nav { flex: 0 0 auto; }
+.header-collapse .header-cta { flex: 0 0 auto; }
 
-/* Full desktop bar: the nav links and the button group otherwise read as one
-   run-on strip ("Contact  Call Now"). Tighter link spacing pays for a divider
-   that separates the two groups, so the net width is unchanged. */
+/* Full desktop bar. .container caps at min(1180px, 92%), so the header has
+   1180px at ANY screen width — a 4K monitor buys nothing. With Call Now, Login/
+   Account, Install App and Get a Free Quote all showing, the labelled row needs
+   ~1297px, so the two secondary buttons go icon-only here and the account label
+   tightens. Worst case after (signed in + Install App showing) measures 1162px
+   of 1180px: brand 179 + 14 + nav 466 + 22 + cta 294 + 14 + quote 173.
+   That leaves ~18px, so adding an eighth nav link will need width found here. */
 @media (min-width: 1281px) {
   .header-collapse .nav { gap: 18px; }
   .header-collapse .header-cta {
-    padding-left: 20px;
+    padding-left: 18px;
     border-left: 1px solid rgba(255, 255, 255, .14);
   }
+  .header-collapse .hdr-compact .hdr-label { display: none; }
+  .header-collapse .hdr-compact { padding: 12px 14px; }
+  .header-collapse .acct-label { max-width: 9ch; }
 }
 .header-actions { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 
