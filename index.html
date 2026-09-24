@@ -1,18 +1,6 @@
 <!DOCTYPE html>
-<!-- data-theme drives the seasonal skin. "ganesh" = Ganesh Chaturthi festive
-     layer (css/ganesh.css + js/ganesh.js). Visitors can switch to "original"
-     with the floating toggle; the choice is remembered in localStorage. -->
-<html lang="en" data-theme="ganesh">
+<html lang="en">
 <head>
-  <!-- Applied before first paint so a visitor who chose the classic theme
-       never sees a flash of festive colour. -->
-  <script>
-    try {
-      if (localStorage.getItem('mnu-theme') === 'original') {
-        document.documentElement.setAttribute('data-theme', 'original');
-      }
-    } catch (e) {}
-  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="MyNeedUrban Cleaning Services — professional home, office, deep, carpet, sofa & kitchen cleaning in Nanakramguda, Hyderabad. Book a free quote today." />
@@ -40,12 +28,8 @@
   <!-- NOTE: ?v= is a cache-buster. GitHub Pages serves assets with
        Cache-Control: max-age=600, so bump this value on every deploy that
        changes CSS/JS or returning visitors keep the stale file for 10 min. -->
-  <link rel="stylesheet" href="css/style.css?v=20260917" />
-  <link rel="stylesheet" href="css/animations.css?v=20260917" />
-  <!-- Seasonal layer. Every rule is scoped to [data-theme="ganesh"], so
-       deleting this line + js/ganesh.js restores the site exactly. -->
-  <link rel="stylesheet" href="css/ganesh.css?v=20260917" />
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css?v=20260924" />
+  <link rel="stylesheet" href="css/animations.css?v=20260924" />
 
   <script type="application/ld+json">
   {
@@ -63,24 +47,6 @@
   </script>
 </head>
 <body>
-
-  <!-- ════════ GANESH CHATURTHI FESTIVE LAYER ════════ -->
-  <!-- Marigold toran strung across the top. Strands are injected by
-       js/ganesh.js so the count adapts to the viewport width. -->
-  <div class="gn-toran" aria-hidden="true"></div>
-  <!-- Gold scroll-progress bar, sits directly under the toran -->
-  <div class="gn-progress" aria-hidden="true"></div>
-
-  <div class="gn-banner" id="gnBanner">
-    <div class="gn-banner-inner">
-      <span class="gn-tag"><span class="gn-om">&#2384;</span> Ganesh Chaturthi</span>
-      <span>Get your home <b>Bappa-ready</b> &mdash; festive deep-cleaning slots are open</span>
-      <span class="gn-countdown" id="gnCountdown"></span>
-      <button class="gn-banner-close" id="gnBannerClose" aria-label="Dismiss festive banner" title="Dismiss">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-    </div>
-  </div>
 
   <!-- HEADER -->
   <header class="site-header" id="siteHeader">
@@ -145,37 +111,10 @@
   <section id="home" class="hero">
     <div class="hero-bg"></div>
 
-    <!-- Optional festive video layer. Nothing ships by default: drop a clip at
-         assets/video/ganesh-hero.mp4 and it fades in over the gradient. If the
-         file is absent js/ganesh.js removes the element, so there is no 404
-         noise and no page-weight cost. -->
-    <video id="gnVideo" muted loop playsinline preload="none" aria-hidden="true">
-      <source src="assets/video/ganesh-hero.mp4" type="video/mp4" />
-    </video>
-    <!-- Generated festive scene: marigold petals, floating diyas, gold dust.
-         Drawn on canvas rather than downloaded, so there is no licensing
-         question and nothing to 404. Pauses off-screen and when tab hidden. -->
-    <canvas id="gnCanvas" aria-hidden="true"></canvas>
-
     <div class="container hero-grid">
       <div class="hero-copy reveal">
-        <!-- Festive greeting: rotating mandala + Om, gold shimmer text -->
-        <div class="gn-greet">
-          <div class="gn-mandala"><span class="gn-greet-om gn-om">&#2384;</span></div>
-          <div class="gn-greet-txt">
-            <strong>&#2327;&#2339;&#2346;&#2340;&#2368; &#2348;&#2366;&#2346;&#2381;&#2346;&#2366; &#2350;&#2379;&#2352;&#2351;&#2366;!</strong>
-            <small>Wishing you and your family a joyful Ganesh Chaturthi from all of us at MyNeedUrban</small>
-          </div>
-          <span class="gn-diya" aria-hidden="true"></span>
-        </div>
-
         <span class="eyebrow"><i class="fa-solid fa-leaf"></i> Verified · Eco-friendly · Trusted</span>
         <h1>A Cleaner Home,<br /><span class="accent">A Happier You.</span></h1>
-
-        <div class="gn-offer">
-          <span class="gn-off-pill">FESTIVE SPECIAL</span>
-          <span>Pre-festival deep cleaning &mdash; reserve your slot before the pandal goes up</span>
-        </div>
 
         <p class="lead">Professional home, office &amp; deep cleaning by a verified team — serving Nanakramguda and 15 km around. Same-day slots, transparent pricing, spotless results.</p>
         <div class="hero-ctas">
@@ -699,25 +638,18 @@
     <i class="fa-brands fa-whatsapp"></i>
   </a>
 
-  <!-- Festive / Classic theme switch. Remembered in localStorage. -->
-  <button class="gn-toggle" id="gnThemeToggle" aria-pressed="true" title="Switch to the classic MyNeedUrban theme">
-    <span class="gn-t-om" aria-hidden="true">&#2384;</span>
-    <span class="gn-t-label">Festive</span>
-  </button>
-
-  <script src="js/main.js?v=20260917"></script>
-  <script src="js/pwa.js?v=20260917" defer></script>
-  <script src="js/slider.js?v=20260917"></script>
-  <script src="js/ganesh.js?v=20260917" defer></script>
-  <script type="module" src="js/form.js?v=20260917"></script>
-  <script type="module" src="js/auth.js?v=20260917"></script>
-  <script type="module" src="js/booking.js?v=20260917"></script>
+  <script src="js/main.js?v=20260924"></script>
+  <script src="js/pwa.js?v=20260924" defer></script>
+  <script src="js/slider.js?v=20260924"></script>
+  <script type="module" src="js/form.js?v=20260924"></script>
+  <script type="module" src="js/auth.js?v=20260924"></script>
+  <script type="module" src="js/booking.js?v=20260924"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">
     <div class="mnu-modal-box">
       <div class="mnu-modal-head">
-        <img src="assets/logo/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
+        <img src="assets/favicon/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
         <h3>Welcome Back</h3>
         <p>Login to your account</p>
         <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
@@ -766,7 +698,7 @@
   <div class="mnu-modal" id="signupModal" role="dialog" aria-label="Sign Up">
     <div class="mnu-modal-box">
       <div class="mnu-modal-head">
-        <img src="assets/logo/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
+        <img src="assets/favicon/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
         <h3>Create Account</h3>
         <p>Join MyNeedUrban today</p>
         <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
