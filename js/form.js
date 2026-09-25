@@ -1,52 +1,92 @@
 /* ===============================
    MyNeedUrban — form.js
-   Contact form → Firebase Firestore
-   =============================== */
+   "Request a call back" form → a booking the admin dashboard can act on.
 
-import { db, collection, addDoc, serverTimestamp } from './firebase-config.js';
+   Writes the same document shape as the booking sheet (channel 'callback'),
+   so call-backs get an order ID, show up on the admin page with Call and
+   WhatsApp buttons, and pass the same Firestore validation rules.
+   =============================== */
+import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js?v=20260924b';
+import { makeOrderId } from './order-id.js?v=20260924b';
 
 const form = document.getElementById('contactForm');
 const note = document.getElementById('formNote');
 
-if (form) {
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/** 10-digit Indian mobile from "+91 98765 43210", "098765 43210", etc. */
+const mobile10 = raw => String(raw || '').replace(/\D/g, '').replace(/^(?:91|0)(?=\d{10}$)/, '');
+
+if (form && note) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
+    const name = String(data.name || '').trim();
+    const phone = mobile10(data.phone);
+    const email = String(data.email || '').trim();
+    const service = String(data.service || '').trim();
+    const message = String(data.message || '').trim();
 
-    if (!data.name || !data.phone || !data.service) {
-      note.style.color = '#dc2626';
-      note.textContent = 'Please fill your name, phone and a service.';
-      return;
-    }
+    const fail = (msg) => { note.style.color = '#dc2626'; note.textContent = msg; };
+    if (!name) return fail('Please enter your name.');
+    if (!/^\d{10}$/.test(phone)) return fail('Please enter a valid 10-digit mobile number.');
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) return fail('Please enter a valid email, or leave it blank.');
+    if (!service) return fail('Please choose a service.');
 
-    // Disable button while submitting
     const btn = form.querySelector('button[type="submit"]');
+    const btnHtml = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = 'Sending...';
+    btn.textContent = 'Sending…';
 
+    const orderId = makeOrderId();
+    const user = auth.currentUser;
     try {
-      // Write booking to Firestore
       await addDoc(collection(db, 'bookings'), {
-        customerName: data.name,
-        customerPhone: data.phone,
-        customerEmail: data.email || '',
-        serviceName: data.service,
-        notes: data.message || '',
-        source: 'website',
+        orderId,
         status: 'pending',
+        source: 'website',
+        channel: 'callback',
+
+        customerId: user?.uid || null,
+        isGuest: !user,
+        customerName: name.slice(0, 100),
+        customerPhone: phone,
+        customerAltPhone: '',
+        customerEmail: email.slice(0, 120),
+
+        scheduledDate: null,
+
+        serviceId: 'callback',
+        serviceName: service.slice(0, 120),
+        servicePath: `Call-back request > ${service}`.slice(0, 300),
+        enquiredVia: null,
+        venueType: null,
+
+        pricingType: 'quote',
+        priceUnit: null,
+        quantity: 1,
+        amount: 0,
+        mrp: null,
+
+        address: '',
+        addressParts: null,
+        geo: null,
+        mapsLink: null,
+
+        notes: message.slice(0, 2000),
         createdAt: serverTimestamp(),
       });
-
       note.style.color = '#16a34a';
-      note.textContent = 'Thanks! We received your request and will call you shortly.';
+      note.innerHTML = `Thanks, ${esc(name.split(/\s+/)[0])}! We'll call you on +91 ${phone} shortly. `
+        + `Your reference is <strong>${orderId}</strong>.`;
       form.reset();
     } catch (error) {
-      console.error('Booking error:', error);
-      note.style.color = '#dc2626';
-      note.textContent = 'Something went wrong. Please call us directly or try again.';
+      console.error('[callback] save failed', error);
+      fail('Something went wrong. Please call us on 96133 04724 or try again.');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = btnHtml;
     }
-
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Send Request';
   });
 }

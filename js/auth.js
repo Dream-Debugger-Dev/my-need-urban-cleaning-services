@@ -1,34 +1,95 @@
 /* ===============================
    MyNeedUrban — auth.js
-   Firebase Auth: Phone OTP + Email
+   Login / sign-up (phone OTP + email), forgot password, header account state.
+
+   Loaded ONCE per page: the <script> tag and every `import` use the exact
+   same URL (including ?v=). A second URL would run this file twice and
+   bind every login button twice — two OTP SMS per tap.
    =============================== */
 
 import {
   auth, db,
   RecaptchaVerifier, signInWithPhoneNumber,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
   onAuthStateChanged, signOut,
-  doc, setDoc, getDoc, updateDoc, serverTimestamp
-} from './firebase-config.js';
+  doc, setDoc, getDoc, serverTimestamp
+} from './firebase-config.js?v=20260924b';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let currentUser = null;
 let confirmationResult = null;
+let profileUid = null;
 
-// ─── Auth state listener ──────────────────────────────────────────────────────
+// Where to go after logging in, from ?login=1&next=account. Whitelisted so the
+// parameter can't be abused as an open redirect.
+const NEXT_PAGES = { account: 'pages/account.html', admin: 'pages/admin.html' };
+const params = new URLSearchParams(location.search);
+let nextAfterLogin = NEXT_PAGES[params.get('next')] || null;
+
+// ─── Auth state + profile ─────────────────────────────────────────────────────
+/** Tells other modules (the app shell) who is signed in. */
+function publish(user, profile) {
+  window._mnuAuthState = { user, profile };
+  document.dispatchEvent(new CustomEvent('mnu:auth', { detail: { user, profile } }));
+}
+
+/** Stores a profile we already know (just created) without another read. */
+function rememberProfile(user, profile) {
+  window._userProfile = profile;
+  profileUid = user.uid;
+  updateHeaderUI(user);
+  publish(user, profile);
+}
+
+async function loadProfile(user) {
+  const ref = doc(db, 'users', user.uid);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) return snap.data();
+    } catch (e) {
+      console.warn('[auth] profile read failed', e?.code || e);
+      return null;
+    }
+    // A brand-new account's profile is written a moment after sign-in.
+    await new Promise(r => setTimeout(r, 1200));
+  }
+  return null;
+}
+
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
-  updateHeaderUI(user);
-  if (user) {
-    // Load user profile from Firestore
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    if (snap.exists()) {
-      window._userProfile = snap.data();
-    }
-    // Register FCM token for push notifications (admin browser alerts)
-    registerFcmToken(user.uid);
+  if (!user) {
+    window._userProfile = null;
+    profileUid = null;
+    updateHeaderUI(null);
+    publish(null, null);
+    return;
   }
+  if (profileUid !== user.uid) { window._userProfile = null; profileUid = null; }
+  updateHeaderUI(user);
+  publish(user, window._userProfile || null);
+
+  const profile = await loadProfile(user);
+  if (auth.currentUser?.uid !== user.uid) return;   // signed out meanwhile
+  if (profile) { window._userProfile = profile; profileUid = user.uid; }
+  updateHeaderUI(user);
+  publish(user, window._userProfile || null);
 });
+
+/** Creates a customer profile if an older account never got one. */
+async function ensureProfile(user) {
+  try {
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (snap.exists()) return;
+    const profile = { name: user.displayName || '', email: user.email || '', role: 'customer' };
+    await setDoc(ref, { ...profile, createdAt: serverTimestamp() });
+    rememberProfile(user, profile);
+  } catch (e) {
+    console.warn('[auth] could not create profile', e?.code || e);
+  }
+}
 
 // ─── Header UI ────────────────────────────────────────────────────────────────
 function updateHeaderUI(user) {
@@ -41,14 +102,13 @@ function updateHeaderUI(user) {
 
     const raw = window._userProfile?.name || user.displayName ||
                 user.email || user.phoneNumber || 'Account';
-    // An email has no spaces, so the old split(' ')[0] returned the WHOLE
-    // address and blew the header past the screen edge on phones. Take the
-    // local part for emails, the first word otherwise, then cap the length.
+    // An email has no spaces, so split(' ')[0] would return the WHOLE address
+    // and push the header past the screen edge. Take the local part for
+    // emails, the first word otherwise, then cap the length.
     let label = raw.includes('@') ? raw.split('@')[0] : raw.trim().split(/\s+/)[0];
     if (label.length > 14) label = label.slice(0, 13) + '…';
 
-    // Built with textContent, not innerHTML: the name comes from the user's own
-    // Firestore profile and must not be able to inject markup.
+    // textContent, not innerHTML: the name comes from the user's own profile.
     accountBtn.innerHTML = '<i class="fa-solid fa-circle-user"></i> <span class="acct-label"></span>';
     accountBtn.querySelector('.acct-label').textContent = label;
     accountBtn.title = raw;
@@ -58,24 +118,7 @@ function updateHeaderUI(user) {
   }
 }
 
-// ─── FCM Token Registration ───────────────────────────────────────────────────
-async function registerFcmToken(uid) {
-  try {
-    const { getMessaging, getToken } = await import('https://www.gstatic.com/firebasejs/11.7.1/firebase-messaging.js');
-    const messaging = getMessaging();
-    // VAPID key from Firebase console > Project Settings > Cloud Messaging > Web Push certificates
-    const VAPID_KEY = 'BLx7pPzUiGi_Nm3ZUiIGKg1mSW_pSfYHk3XVmN5R8qVwE2LVqXoKVUyHdH6Q3oEVkP8NiSg2D9fR7JdZpMQkFcE';
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
-    if (token) {
-      await updateDoc(doc(db, 'users', uid), { fcmToken: token });
-    }
-  } catch (e) {
-    // Silently fail — FCM is optional, doesn't affect booking flow
-    console.debug('[fcm] token not saved:', e?.message);
-  }
-}
-
-
+// ─── Modals ───────────────────────────────────────────────────────────────────
 function openModal(id) {
   document.getElementById(id)?.classList.add('modal-open');
   document.body.style.overflow = 'hidden';
@@ -89,7 +132,6 @@ function closeAllModals() {
   document.body.style.overflow = '';
 }
 
-// ─── Tab switching ────────────────────────────────────────────────────────────
 function initAuthTabs() {
   document.querySelectorAll('.auth-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -103,79 +145,160 @@ function initAuthTabs() {
   });
 }
 
-// ─── reCAPTCHA ────────────────────────────────────────────────────────────────
-function setupRecaptcha(btnId) {
-  if (window.recaptchaVerifier) {
-    window.recaptchaVerifier.clear();
-    window.recaptchaVerifier = null;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const AUTH_ERRORS = {
+  'auth/invalid-phone-number': "That phone number doesn't look right.",
+  'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+  'auth/quota-exceeded': 'OTP limit reached for now. Please try again later, or log in with email.',
+  'auth/captcha-check-failed': 'Security check failed. Please refresh the page and try again.',
+  'auth/invalid-verification-code': 'That OTP is incorrect. Please check and try again.',
+  'auth/code-expired': 'That OTP has expired. Tap "Resend OTP".',
+  'auth/missing-verification-code': 'Enter the 6-digit OTP.',
+  'auth/invalid-credential': 'Wrong email or password.',
+  'auth/invalid-login-credentials': 'Wrong email or password.',
+  'auth/wrong-password': 'Wrong email or password.',
+  'auth/user-not-found': 'Wrong email or password.',
+  'auth/invalid-email': 'Please enter a valid email address.',
+  'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
+  'auth/weak-password': 'Please choose a stronger password (at least 6 characters).',
+  'auth/network-request-failed': 'No internet connection. Please check and try again.',
+  'auth/user-disabled': 'This account has been disabled. Please contact us.',
+  'auth/operation-not-allowed': "This login method isn't enabled yet. Please use another option.",
+  'auth/billing-not-enabled': "Phone login isn't available right now. Please use email.",
+};
+const authMessage = (err, fallback) => AUTH_ERRORS[err?.code] || fallback;
+
+/** Disables a button while a request runs, so one tap = one request. */
+function busy(btn, on, label) {
+  if (!btn) return;
+  if (on) {
+    btn.dataset.label = btn.innerHTML;
+    btn.disabled = true;
+    if (label) btn.textContent = label;
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.label != null) btn.innerHTML = btn.dataset.label;
   }
+}
+
+function setMsg(el, text, ok = false) {
+  if (!el) return;
+  el.classList.toggle('is-ok', ok);
+  el.textContent = text;
+}
+
+function afterSignIn() {
+  if (nextAfterLogin) location.href = nextAfterLogin;
+}
+
+// ─── Phone OTP ────────────────────────────────────────────────────────────────
+function setupRecaptcha(btnId) {
+  try { window.recaptchaVerifier?.clear(); } catch (_) { /* already cleared */ }
   window.recaptchaVerifier = new RecaptchaVerifier(auth, btnId, { size: 'invisible' });
 }
 
-// ─── Phone OTP Login ──────────────────────────────────────────────────────────
 async function sendOtp(phone, btnId, otpSection, errorEl) {
+  setMsg(errorEl, '');
   try {
-    errorEl.textContent = '';
     setupRecaptcha(btnId);
     confirmationResult = await signInWithPhoneNumber(auth, '+91' + phone, window.recaptchaVerifier);
     otpSection.style.display = 'block';
   } catch (err) {
-    errorEl.textContent = err.message || 'Failed to send OTP';
+    console.warn('[auth] OTP send failed', err?.code || err);
+    setMsg(errorEl, authMessage(err, 'Could not send the OTP. Please try again.'));
     throw err;
   }
 }
 
-async function verifyOtp(otp, name, isSignup, errorEl) {
+async function verifyOtp(otp, name, isSignup, errorEl, btn) {
+  setMsg(errorEl, '');
+  if (!confirmationResult) { setMsg(errorEl, 'Please request an OTP first.'); return; }
+  busy(btn, true, 'Verifying…');
+  let user;
   try {
-    errorEl.textContent = '';
-    const result = await confirmationResult.confirm(otp);
-    const user = result.user;
-    // Check/create Firestore profile
+    user = (await confirmationResult.confirm(otp)).user;
+  } catch (err) {
+    busy(btn, false);
+    setMsg(errorEl, authMessage(err, 'That OTP is incorrect. Please try again.'));
+    return;
+  }
+  // Signed in. A profile-save problem must not be reported as a wrong OTP.
+  try {
     const ref = doc(db, 'users', user.uid);
     const snap = await getDoc(ref);
     if (!snap.exists()) {
-      await setDoc(ref, {
-        name: name || '',
-        phone: user.phoneNumber,
-        role: 'customer',
-        createdAt: serverTimestamp()
-      });
+      const profile = { name: name || '', phone: user.phoneNumber, role: 'customer' };
+      await setDoc(ref, { ...profile, createdAt: serverTimestamp() });
+      rememberProfile(user, profile);
+    } else if (isSignup && name && !snap.data().name) {
+      await setDoc(ref, { name }, { merge: true });
+      rememberProfile(user, { ...snap.data(), name });
     }
-    closeAllModals();
-    if (isSignup) showToast('Account created! Welcome 🎉');
-    else showToast('Logged in successfully!');
   } catch (err) {
-    errorEl.textContent = 'Invalid OTP. Please try again.';
+    console.warn('[auth] profile save failed', err?.code || err);
   }
+  busy(btn, false);
+  closeAllModals();
+  showToast(isSignup ? 'Account created! Welcome 🎉' : 'Logged in successfully!');
+  afterSignIn();
 }
 
-// ─── Email Login / Signup ─────────────────────────────────────────────────────
-async function emailLogin(email, password, errorEl) {
+// ─── Email ────────────────────────────────────────────────────────────────────
+async function emailLogin(email, password, errorEl, btn) {
+  setMsg(errorEl, '');
+  busy(btn, true, 'Logging in…');
   try {
-    errorEl.textContent = '';
-    await signInWithEmailAndPassword(auth, email, password);
+    const { user } = await signInWithEmailAndPassword(auth, email, password);
     closeAllModals();
     showToast('Logged in successfully!');
+    ensureProfile(user);
+    afterSignIn();
   } catch (err) {
-    errorEl.textContent = 'Invalid email or password.';
+    setMsg(errorEl, authMessage(err, 'Could not log in. Please try again.'));
+  } finally {
+    busy(btn, false);
   }
 }
 
-async function emailSignup(name, email, password, errorEl) {
+async function emailSignup(name, email, password, errorEl, btn) {
+  setMsg(errorEl, '');
+  busy(btn, true, 'Creating account…');
   try {
-    errorEl.textContent = '';
-    const result = await createUserWithEmailAndPassword(auth, email, password);
-    await setDoc(doc(db, 'users', result.user.uid), {
-      name, email,
-      role: 'customer',
-      createdAt: serverTimestamp()
-    });
+    const { user } = await createUserWithEmailAndPassword(auth, email, password);
+    try {
+      const profile = { name, email, role: 'customer' };
+      await setDoc(doc(db, 'users', user.uid), { ...profile, createdAt: serverTimestamp() });
+      rememberProfile(user, profile);
+    } catch (e) {
+      console.warn('[auth] profile save failed', e?.code || e);
+    }
     closeAllModals();
     showToast('Account created! Welcome 🎉');
+    afterSignIn();
   } catch (err) {
-    errorEl.textContent = err.code === 'auth/email-already-in-use'
-      ? 'Email already registered. Please login.'
-      : err.message;
+    setMsg(errorEl, authMessage(err, 'Could not create your account. Please try again.'));
+  } finally {
+    busy(btn, false);
+  }
+}
+
+async function forgotPassword(errorEl, btn) {
+  const input = document.getElementById('loginEmail');
+  const email = input?.value.trim() || '';
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    setMsg(errorEl, 'Type your email above, then tap "Forgot password?"');
+    input?.focus();
+    return;
+  }
+  busy(btn, true, 'Sending…');
+  try {
+    await sendPasswordResetEmail(auth, email);
+    // Worded this way on purpose: Firebase doesn't reveal whether an account exists.
+    setMsg(errorEl, `If an account exists for ${email}, a reset link is on its way. Check your inbox and spam folder.`, true);
+  } catch (err) {
+    setMsg(errorEl, authMessage(err, 'Could not send the reset email. Please try again.'));
+  } finally {
+    busy(btn, false);
   }
 }
 
@@ -187,6 +310,7 @@ async function logout() {
 }
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer = null;
 function showToast(msg) {
   let t = document.getElementById('mnuToast');
   if (!t) {
@@ -194,117 +318,145 @@ function showToast(msg) {
     t.id = 'mnuToast';
     document.body.appendChild(t);
   }
+  t.setAttribute('role', 'status');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 
 // ─── Wire up DOM ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initAuthTabs();
+  const $ = (id) => document.getElementById(id);
 
-  // Open modals
-  document.getElementById('headerLoginBtn')?.addEventListener('click', () => openModal('authModal'));
-  document.getElementById('openSignupLink')?.addEventListener('click', (e) => {
+  $('headerLoginBtn')?.addEventListener('click', () => openModal('authModal'));
+  $('openSignupLink')?.addEventListener('click', (e) => {
     e.preventDefault();
-    openModal('signupModal');
     closeModal('authModal');
+    openModal('signupModal');
   });
-  document.getElementById('openLoginLink')?.addEventListener('click', (e) => {
+  $('openLoginLink')?.addEventListener('click', (e) => {
     e.preventDefault();
-    openModal('authModal');
     closeModal('signupModal');
+    openModal('authModal');
   });
-
-  // Account button
-  document.getElementById('headerAccountBtn')?.addEventListener('click', () => {
+  $('headerAccountBtn')?.addEventListener('click', () => {
     window.location.href = 'pages/account.html';
   });
 
-  // Close modals
-  document.querySelectorAll('[data-close-modal]').forEach(btn => {
+  // Close buttons and backdrop taps. The booking sheet has its own handlers.
+  document.querySelectorAll('.mnu-modal:not(#bookingModal) [data-close-modal]').forEach(btn => {
     btn.addEventListener('click', () => closeAllModals());
   });
-  document.querySelectorAll('.mnu-modal').forEach(modal => {
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeAllModals();
-    });
+  document.querySelectorAll('.mnu-modal:not(#bookingModal)').forEach(modal => {
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeAllModals(); });
   });
 
-  // ── LOGIN MODAL ──
-  const loginSendOtpBtn = document.getElementById('loginSendOtpBtn');
-  const loginVerifyBtn = document.getElementById('loginVerifyBtn');
-  const loginEmailBtn = document.getElementById('loginEmailBtn');
-  const loginOtpSection = document.getElementById('loginOtpSection');
-  const loginError = document.getElementById('loginError');
+  // Enter in the last field submits, like a normal form
+  const enterClicks = (inputId, btnId) =>
+    $(inputId)?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); $(btnId)?.click(); }
+    });
+  enterClicks('loginPhone', 'loginSendOtpBtn');
+  enterClicks('loginOtp', 'loginVerifyBtn');
+  enterClicks('loginPassword', 'loginEmailBtn');
+  enterClicks('signupOtp', 'signupVerifyBtn');
+  enterClicks('signupPassword', 'signupEmailBtn');
+
+  // ── LOGIN ──
+  const loginSendOtpBtn = $('loginSendOtpBtn');
+  const loginVerifyBtn = $('loginVerifyBtn');
+  const loginOtpSection = $('loginOtpSection');
+  const loginError = $('loginError');
 
   loginSendOtpBtn?.addEventListener('click', () => {
-    const phone = document.getElementById('loginPhone').value.trim();
-    if (phone.length !== 10) { loginError.textContent = 'Enter a valid 10-digit phone number'; return; }
-    loginSendOtpBtn.disabled = true;
-    loginSendOtpBtn.textContent = 'Sending...';
+    const phone = $('loginPhone').value.replace(/\D/g, '');
+    if (!/^\d{10}$/.test(phone)) { setMsg(loginError, 'Enter a valid 10-digit phone number'); return; }
+    busy(loginSendOtpBtn, true, 'Sending…');
     sendOtp(phone, 'loginSendOtpBtn', loginOtpSection, loginError).then(() => {
-      loginOtpSection.style.display = 'block';
-      loginVerifyBtn.style.display = 'block';
+      busy(loginSendOtpBtn, false);
       loginSendOtpBtn.textContent = 'Resend OTP';
-      loginSendOtpBtn.disabled = false;
-    }).catch(() => { loginSendOtpBtn.disabled = false; loginSendOtpBtn.textContent = 'Send OTP'; });
+      loginVerifyBtn.style.display = 'block';
+      $('loginOtp')?.focus();
+    }).catch(() => busy(loginSendOtpBtn, false));
   });
 
   loginVerifyBtn?.addEventListener('click', () => {
-    const otp = document.getElementById('loginOtp').value.trim();
-    if (otp.length !== 6) { loginError.textContent = 'Enter the 6-digit OTP'; return; }
-    verifyOtp(otp, '', false, loginError);
+    const otp = $('loginOtp').value.trim();
+    if (!/^\d{6}$/.test(otp)) { setMsg(loginError, 'Enter the 6-digit OTP'); return; }
+    verifyOtp(otp, '', false, loginError, loginVerifyBtn);
   });
 
+  const loginEmailBtn = $('loginEmailBtn');
   loginEmailBtn?.addEventListener('click', () => {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass = document.getElementById('loginPassword').value;
-    const loginError2 = document.getElementById('loginError2');
-    if (!email || !pass) { loginError2.textContent = 'Fill in email and password'; return; }
-    emailLogin(email, pass, loginError2);
+    const email = $('loginEmail').value.trim();
+    const pass = $('loginPassword').value;
+    const loginError2 = $('loginError2');
+    if (!email || !pass) { setMsg(loginError2, 'Fill in email and password'); return; }
+    emailLogin(email, pass, loginError2, loginEmailBtn);
   });
 
-  // ── SIGNUP MODAL ──
-  const signupSendOtpBtn = document.getElementById('signupSendOtpBtn');
-  const signupVerifyBtn = document.getElementById('signupVerifyBtn');
-  const signupEmailBtn = document.getElementById('signupEmailBtn');
-  const signupOtpSection = document.getElementById('signupOtpSection');
-  const signupError = document.getElementById('signupError');
+  const forgotBtn = $('forgotPwBtn');
+  forgotBtn?.addEventListener('click', () => forgotPassword($('loginError2'), forgotBtn));
+
+  // ── SIGN UP ──
+  const signupSendOtpBtn = $('signupSendOtpBtn');
+  const signupVerifyBtn = $('signupVerifyBtn');
+  const signupOtpSection = $('signupOtpSection');
+  const signupError = $('signupError');
 
   signupSendOtpBtn?.addEventListener('click', () => {
-    const phone = document.getElementById('signupPhone').value.trim();
-    if (phone.length !== 10) { signupError.textContent = 'Enter a valid 10-digit phone number'; return; }
-    signupSendOtpBtn.disabled = true;
-    signupSendOtpBtn.textContent = 'Sending...';
+    const phone = $('signupPhone').value.replace(/\D/g, '');
+    if (!$('signupName').value.trim()) { setMsg(signupError, 'Enter your name'); return; }
+    if (!/^\d{10}$/.test(phone)) { setMsg(signupError, 'Enter a valid 10-digit phone number'); return; }
+    busy(signupSendOtpBtn, true, 'Sending…');
     sendOtp(phone, 'signupSendOtpBtn', signupOtpSection, signupError).then(() => {
-      signupOtpSection.style.display = 'block';
-      signupVerifyBtn.style.display = 'block';
+      busy(signupSendOtpBtn, false);
       signupSendOtpBtn.textContent = 'Resend OTP';
-      signupSendOtpBtn.disabled = false;
-    }).catch(() => { signupSendOtpBtn.disabled = false; signupSendOtpBtn.textContent = 'Send OTP'; });
+      signupVerifyBtn.style.display = 'block';
+      $('signupOtp')?.focus();
+    }).catch(() => busy(signupSendOtpBtn, false));
   });
 
   signupVerifyBtn?.addEventListener('click', () => {
-    const otp = document.getElementById('signupOtp').value.trim();
-    const name = document.getElementById('signupName').value.trim();
-    if (!name) { signupError.textContent = 'Enter your name'; return; }
-    if (otp.length !== 6) { signupError.textContent = 'Enter the 6-digit OTP'; return; }
-    verifyOtp(otp, name, true, signupError);
+    const otp = $('signupOtp').value.trim();
+    const name = $('signupName').value.trim();
+    if (!name) { setMsg(signupError, 'Enter your name'); return; }
+    if (!/^\d{6}$/.test(otp)) { setMsg(signupError, 'Enter the 6-digit OTP'); return; }
+    verifyOtp(otp, name, true, signupError, signupVerifyBtn);
   });
 
+  const signupEmailBtn = $('signupEmailBtn');
   signupEmailBtn?.addEventListener('click', () => {
-    const name = document.getElementById('signupEmailName').value.trim();
-    const email = document.getElementById('signupEmail').value.trim();
-    const pass = document.getElementById('signupPassword').value;
-    const signupError2 = document.getElementById('signupError2');
-    if (!name || !email || !pass) { signupError2.textContent = 'Fill in all fields'; return; }
-    if (pass.length < 6) { signupError2.textContent = 'Password must be at least 6 characters'; return; }
-    emailSignup(name, email, pass, signupError2);
+    const name = $('signupEmailName').value.trim();
+    const email = $('signupEmail').value.trim();
+    const pass = $('signupPassword').value;
+    const signupError2 = $('signupError2');
+    if (!name || !email || !pass) { setMsg(signupError2, 'Fill in all fields'); return; }
+    if (pass.length < 6) { setMsg(signupError2, 'Password must be at least 6 characters'); return; }
+    emailSignup(name, email, pass, signupError2, signupEmailBtn);
   });
 
-  // Logout
-  document.getElementById('logoutBtn')?.addEventListener('click', logout);
+  $('logoutBtn')?.addEventListener('click', logout);
+
+  // ── ?login=1[&next=account|admin] — sent here by My Bookings / Admin ──
+  if (params.get('login') === '1' && $('authModal')) {
+    const sub = $('authModalSub');
+    if (sub && params.get('next') === 'account') sub.textContent = 'Log in to see your bookings';
+    if (sub && params.get('next') === 'admin') sub.textContent = 'Log in with your admin account';
+    params.delete('login');
+    params.delete('next');
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+
+    // Already signed in (session restored)? Go straight on instead of asking.
+    const off = onAuthStateChanged(auth, (u) => {
+      off();
+      if (u && nextAfterLogin) location.href = nextAfterLogin;
+      else if (!u) openModal('authModal');
+    });
+  }
 });
 
 export { currentUser, openModal, closeModal, showToast, logout };

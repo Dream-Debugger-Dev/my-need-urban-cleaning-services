@@ -1,0 +1,19 @@
+{
+  "name": "MyNeedUrban Admin — Live Orders",
+  "short_name": "MNU Admin",
+  "description": "Incoming bookings in real time, with call, WhatsApp and navigation shortcuts.",
+  "id": "/pages/admin.html",
+  "start_url": "/pages/admin.html?source=pwa",
+  "scope": "/pages/admin.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "en-IN",
+  "icons": [
+    { "src": "../assets/pwa/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "../assets/pwa/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "../assets/pwa/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "../assets/pwa/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

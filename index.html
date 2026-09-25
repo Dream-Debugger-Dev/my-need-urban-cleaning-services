@@ -2,11 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="MyNeedUrban Cleaning Services — professional home, office, deep, carpet, sofa & kitchen cleaning in Nanakramguda, Hyderabad. Book a free quote today." />
+  <!-- viewport-fit=cover lets the bottom tab bar sit under the iPhone home
+       indicator; env(safe-area-inset-*) in css/app.css keeps content clear of it. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="MyNeedUrban Cleaning Services — professional home, office, deep, carpet, sofa & kitchen cleaning in Nanakramguda, Hyderabad. See prices upfront, book online in a minute and pay after service." />
   <meta name="keywords" content="cleaning services Hyderabad, home cleaning Nanakramguda, deep cleaning, sofa cleaning, kitchen cleaning, carpet cleaning" />
   <meta property="og:title" content="MyNeedUrban Cleaning Services — A Cleaner Home, A Happier You" />
-  <meta property="og:description" content="Trusted, verified cleaning experts serving Nanakramguda and 15 km around. Get a free quote today." />
+  <meta property="og:description" content="Trusted, verified cleaning experts serving Nanakramguda and 15 km around. Upfront prices — book online, pay after service." />
   <meta property="og:type" content="website" />
 
   <title>MyNeedUrban Cleaning Services — A Cleaner Home, A Happier You</title>
@@ -26,10 +28,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- NOTE: ?v= is a cache-buster. GitHub Pages serves assets with
-       Cache-Control: max-age=600, so bump this value on every deploy that
-       changes CSS/JS or returning visitors keep the stale file for 10 min. -->
-  <link rel="stylesheet" href="css/style.css?v=20260924" />
-  <link rel="stylesheet" href="css/animations.css?v=20260924" />
+       Cache-Control: max-age=600, so bump it on every deploy that changes
+       CSS/JS — here, in pages/*.html, in every `import ... from './x.js?v='`
+       inside js/, and VERSION in sw.js. All must be the SAME value: a module
+       imported under two URLs runs twice. The QA check enforces this. -->
+  <link rel="stylesheet" href="css/style.css?v=20260924b" />
+  <link rel="stylesheet" href="css/animations.css?v=20260924b" />
+  <!-- App layer: bottom tab bar, menu sheet, discovery grid, mobile booking
+       sheet. Loaded last so it can refine style.css without editing it. -->
+  <link rel="stylesheet" href="css/app.css?v=20260924b" />
 
   <script type="application/ld+json">
   {
@@ -46,29 +53,29 @@
   }
   </script>
 </head>
-<body>
+<body data-page="home">
 
   <!-- HEADER -->
   <header class="site-header" id="siteHeader">
     <div class="container header-inner">
-      <a href="#home" class="brand">
-        <img src="assets/logo/MyNeedUrban_logo_v3.png" alt="MyNeedUrban Logo" class="brand-logo" />
+      <a href="#home" class="brand" aria-label="MyNeedUrban — back to top">
+        <img src="assets/logo/MyNeedUrban_logo_v3.png" alt="" class="brand-logo" width="44" height="44" />
         <span class="brand-text">
           <strong>MyNeedUrban</strong>
           <small>Cleaning Services</small>
         </span>
       </a>
 
-      <!-- Collapses into the hamburger drawer below 1100px. Holds the nav AND
-           the secondary buttons, so Call Now / Login / Install stay reachable
-           on a phone rather than being display:none'd out of existence. -->
+      <!-- Collapses into the hamburger drawer below 1280px (tablets). On phones
+           (<= 768px) the bottom tab bar + Menu sheet in js/app-shell.js take
+           over, so this drawer and its toggle are hidden there.
+           Nav order follows the page order, which main.js's scrollspy needs. -->
       <div class="header-collapse" id="headerCollapse">
-        <nav class="nav" id="nav">
-          <a href="#home">Home</a>
-          <a href="#about">About</a>
+        <nav class="nav" id="nav" aria-label="Main">
           <a href="#services">Services</a>
-          <a href="#gallery">Gallery</a>
+          <a href="#how">How it works</a>
           <a href="#reviews">Reviews</a>
+          <a href="#about">About</a>
           <a href="#faq">FAQ</a>
           <a href="#contact">Contact</a>
         </nav>
@@ -93,12 +100,21 @@
         </div>
       </div>
 
-      <!-- Always visible in the bar, at every width -->
       <div class="header-actions">
-        <a href="#contact" class="btn btn-primary header-quote">
-          <span class="hq-long">Get a Free Quote</span>
-          <span class="hq-short">Quote</span>
+        <!-- Phone-only quick actions. The bottom tab bar carries "Book", so the
+             top bar only needs help + account, like a native app. -->
+        <a class="hdr-icon hdr-wa" href="https://wa.me/919613304724?text=Hi%20MyNeedUrban%2C%20I%27d%20like%20to%20book%20a%20cleaning%20service"
+           target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp">
+          <i class="fa-brands fa-whatsapp"></i>
         </a>
+        <button class="hdr-icon hdr-acct" id="hdrAcct" type="button" aria-label="Log in">
+          <i class="fa-solid fa-user"></i>
+        </button>
+
+        <!-- data-book="" opens the booking sheet at the full category list -->
+        <button type="button" class="btn btn-primary header-book" data-book="">
+          <i class="fa-solid fa-calendar-check"></i> <span>Book Service</span>
+        </button>
         <button class="nav-toggle" id="navToggle" aria-label="Menu"
                 aria-expanded="false" aria-controls="headerCollapse">
           <i class="fa-solid fa-bars"></i>
@@ -116,10 +132,20 @@
         <span class="eyebrow"><i class="fa-solid fa-leaf"></i> Verified · Eco-friendly · Trusted</span>
         <h1>A Cleaner Home,<br /><span class="accent">A Happier You.</span></h1>
 
-        <p class="lead">Professional home, office &amp; deep cleaning by a verified team — serving Nanakramguda and 15 km around. Same-day slots, transparent pricing, spotless results.</p>
+        <p class="lead">Professional home, office &amp; deep cleaning by a verified team — serving Nanakramguda and 15 km around. Same-day slots, upfront prices, pay after service.</p>
+
+        <!-- Opens the booking sheet with search focused. A button rather than a
+             live input so, on phones, the keyboard opens inside the full-screen
+             sheet instead of over the hero. -->
+        <button type="button" class="hero-search" data-book-search>
+          <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+          <span class="hs-text">Search “sofa”, “kitchen”, “2 BHK”…</span>
+          <span class="hs-go">Search</span>
+        </button>
+
         <div class="hero-ctas">
-          <a href="#contact" class="btn btn-primary btn-lg"><i class="fa-solid fa-bolt"></i> Get a Free Quote</a>
-          <a href="tel:+919613304724" class="btn btn-outline btn-lg"><i class="fa-solid fa-phone"></i> Call 9613304724</a>
+          <button type="button" class="btn btn-primary btn-lg" data-book=""><i class="fa-solid fa-calendar-check"></i> Book Service</button>
+          <a href="tel:+919613304724" class="btn btn-outline btn-lg" aria-label="Call 96133 04724"><i class="fa-solid fa-phone"></i> Call<span class="lg-only">&nbsp;96133 04724</span></a>
         </div>
 
         <ul class="trust-strip">
@@ -145,106 +171,157 @@
     </div>
   </section>
 
-  <!-- ABOUT -->
-  <section id="about" class="section">
-    <div class="container about-grid">
-      <div class="about-img reveal">
-        <img src="assets/images/Team_back.jpg" alt="The MyNeedUrban cleaning team in branded uniforms" loading="lazy" decoding="async" />
-        <div class="stat-card">
-          <strong>5+ yrs</strong><small>of trusted service</small>
-        </div>
+  <!-- SERVICES — straight after the hero: customers told us the services were
+       hard to find. Each card opens the booking sheet at that category.
+       .svc-from is filled by js/booking.js from SERVICE_CATALOG, so the
+       "From ₹" price can never drift from the price charged in the flow.
+       .svc-short is the compact label used on the phone tile grid. -->
+  <section id="services" class="section section-alt services-section">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Our Services</span>
+        <h2>What would you like <span class="accent">cleaned</span>?</h2>
+        <p>Tap a service to see exactly what's included and the price — before you book.</p>
       </div>
-      <div class="about-copy reveal">
-        <span class="eyebrow">About MyNeedUrban</span>
-        <h2>Cleaning done right — by people who actually care.</h2>
-        <p>We started MyNeedUrban with a simple idea: make urban cleaning effortless, honest, and genuinely friendly. Every team member is background-verified, trained on modern equipment and eco-safe products, and shows up on time — every time.</p>
-        <ul class="check-list">
-          <li><i class="fa-solid fa-circle-check"></i> Background-verified, trained professionals</li>
-          <li><i class="fa-solid fa-circle-check"></i> Safe, eco-friendly products &amp; modern gear</li>
-          <li><i class="fa-solid fa-circle-check"></i> Transparent pricing — no hidden costs</li>
-          <li><i class="fa-solid fa-circle-check"></i> 100% satisfaction — or we re-clean, free</li>
-        </ul>
-        <a href="#services" class="btn btn-primary">Explore Services</a>
+
+      <div class="services-grid">
+        <article class="service-card reveal" data-book="interior-done" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-paint-roller"></i></div>
+          <h3>Newly Interior-Completed House</h3>
+          <span class="svc-short" aria-hidden="true">New Interior</span>
+          <p>Post-handover deep clean — stickers, paint marks and site dust removed.</p>
+          <span class="svc-from" data-from-for="interior-done"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="home" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-house-chimney"></i></div>
+          <h3>Home Deep Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Home Deep</span>
+          <p>Full-home deep clean for 1–5 BHK, furnished or unfurnished.</p>
+          <span class="svc-from" data-from-for="home"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="office" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-briefcase"></i></div>
+          <h3>Office Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Office</span>
+          <p>Carpet, floor, sofa, chairs, pantry, full office &amp; post-construction packages.</p>
+          <span class="svc-from" data-from-for="office"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="bungalow" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-building"></i></div>
+          <h3>Bungalow / Villa Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Villa</span>
+          <p>Furnished &amp; unfurnished villas, priced by area up to 6,800 sq ft.</p>
+          <span class="svc-from" data-from-for="bungalow"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="floor" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-shoe-prints"></i></div>
+          <h3>Floor Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Floor</span>
+          <p>Machine floor deep clean for 1–5 BHK homes.</p>
+          <span class="svc-from" data-from-for="floor"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="bathroom" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-bath"></i></div>
+          <h3>Bathroom Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Bathroom</span>
+          <p>Descaling, sanitising, and deep-disinfecting every corner.</p>
+          <span class="svc-from" data-from-for="bathroom"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="carpet" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-rug"></i></div>
+          <h3>Carpet Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Carpet</span>
+          <p>Foam shampoo &amp; wet extraction, priced by carpet size.</p>
+          <span class="svc-from" data-from-for="carpet"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="sofa" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-couch"></i></div>
+          <h3>Sofa Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Sofa</span>
+          <p>Foam shampoo deep clean, priced by total seats (3–12).</p>
+          <span class="svc-from" data-from-for="sofa"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="mattress" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-bed"></i></div>
+          <h3>Mattress Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Mattress</span>
+          <p>Shampoo &amp; wet-vacuum deep clean, priced per mattress.</p>
+          <span class="svc-from" data-from-for="mattress"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="kitchen" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-utensils"></i></div>
+          <h3>Kitchen Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Kitchen</span>
+          <p>Occupied or empty kitchen, with chimney, fridge &amp; appliance options.</p>
+          <span class="svc-from" data-from-for="kitchen"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+        <article class="service-card reveal" data-book="commercial" tabindex="0" role="button">
+          <div class="svc-icon"><i class="fa-solid fa-store"></i></div>
+          <h3>Other Commercial Cleaning</h3>
+          <span class="svc-short" aria-hidden="true">Commercial</span>
+          <p>Salon, hostel, clinic, restaurant, shop and more — site visit, then final price.</p>
+          <span class="svc-from" data-from-for="commercial"></span>
+          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
+        </article>
+      </div>
+
+      <div class="services-more reveal">
+        <button type="button" class="btn btn-outline" data-book-search>
+          <i class="fa-solid fa-magnifying-glass"></i> Search all services
+        </button>
       </div>
     </div>
   </section>
 
-  <!-- SERVICES -->
-  <section id="services" class="section section-alt">
+  <!-- HOW IT WORKS — every claim here mirrors the booking flow itself:
+       same-day/next-day wording from the schedule step, order ID from the
+       confirmation screen, "pay after service" from the summary step. -->
+  <section id="how" class="section how-section">
     <div class="container">
       <div class="section-head reveal">
-        <span class="eyebrow">Our Services</span>
-        <h2>Everything you need to keep your space <span class="accent">spotless</span>.</h2>
-        <p>From a quick bathroom refresh to a full villa deep clean — we've got every corner covered.</p>
+        <span class="eyebrow">How it works</span>
+        <h2>Booked in a minute. <span class="accent">Paid after</span> it's spotless.</h2>
       </div>
-
-      <div class="services-grid">
-        <article class="service-card reveal" data-book="interior-done">
-          <div class="svc-icon"><i class="fa-solid fa-paint-roller"></i></div>
-          <h3>Newly Interior-Completed House</h3>
-          <p>Post-handover deep clean — stickers, paint marks and site dust removed.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="home">
-          <div class="svc-icon"><i class="fa-solid fa-house-chimney"></i></div>
-          <h3>Home Cleaning</h3>
-          <p>Regular, thorough cleaning that keeps your home fresh week after week.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="office">
-          <div class="svc-icon"><i class="fa-solid fa-briefcase"></i></div>
-          <h3>Office Cleaning</h3>
-          <p>Carpet, floor, sofa, chairs, pantry, full office & post-construction packages.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="bungalow">
-          <div class="svc-icon"><i class="fa-solid fa-building"></i></div>
-          <h3>Bungalow Cleaning</h3>
-          <p>Large-home specialists with the right team &amp; equipment.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="floor">
-          <div class="svc-icon"><i class="fa-solid fa-shoe-prints"></i></div>
-          <h3>Floor Cleaning</h3>
-          <p>Tile, marble, wood — scrubbed, polished, and sparkling.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="bathroom">
-          <div class="svc-icon"><i class="fa-solid fa-bath"></i></div>
-          <h3>Bathroom Cleaning</h3>
-          <p>Descaling, sanitising, and deep-disinfecting every corner.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="carpet">
-          <div class="svc-icon"><i class="fa-solid fa-rug"></i></div>
-          <h3>Carpet Cleaning</h3>
-          <p>Stain-lifting shampoo &amp; steam clean — safe for all fibres.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="sofa">
-          <div class="svc-icon"><i class="fa-solid fa-couch"></i></div>
-          <h3>Sofa Cleaning</h3>
-          <p>Fabric &amp; leather sofas refreshed, deodorised &amp; protected.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="mattress">
-          <div class="svc-icon"><i class="fa-solid fa-bed"></i></div>
-          <h3>Mattress Cleaning</h3>
-          <p>Dust mite removal &amp; sanitisation for a healthier sleep.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="kitchen">
-          <div class="svc-icon"><i class="fa-solid fa-utensils"></i></div>
-          <h3>Kitchen Cleaning</h3>
-          <p>Empty, Full, or Kitchen + Fridge + Microwave — pick your combo.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
-        <article class="service-card reveal" data-book="commercial">
-          <div class="svc-icon"><i class="fa-solid fa-store"></i></div>
-          <h3>Other Commercial Cleaning</h3>
-          <p>Salon, hostel, clinic, restaurant, shop and more — site visit, then custom quote.</p>
-          <span class="svc-book-btn">Book Now <i class="fa-solid fa-arrow-right"></i></span>
-        </article>
+      <ol class="how-steps">
+        <li class="how-step reveal">
+          <span class="how-num" aria-hidden="true">1</span>
+          <i class="fa-solid fa-hand-pointer" aria-hidden="true"></i>
+          <h4>Pick a service</h4>
+          <p>See exactly what's included and the price before you book.</p>
+        </li>
+        <li class="how-step reveal">
+          <span class="how-num" aria-hidden="true">2</span>
+          <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+          <h4>Add address &amp; date</h4>
+          <p>Pin your location in one tap. Same-day and next-day slots are usually available.</p>
+        </li>
+        <li class="how-step reveal">
+          <span class="how-num" aria-hidden="true">3</span>
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          <h4>Confirm on WhatsApp or call</h4>
+          <p>You get an order ID instantly, and our team calls to confirm.</p>
+        </li>
+        <li class="how-step reveal">
+          <span class="how-num" aria-hidden="true">4</span>
+          <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
+          <h4>Pay after service</h4>
+          <p>Cash or UPI once the job is done. Track every booking in your account.</p>
+        </li>
+      </ol>
+      <div class="how-cta reveal">
+        <button type="button" class="btn btn-primary btn-lg" data-book="">
+          <i class="fa-solid fa-calendar-check"></i> Book Service
+        </button>
       </div>
     </div>
   </section>
@@ -304,36 +381,8 @@
     </div>
   </section>
 
-  <!-- TEAM -->
-  <section id="team" class="section section-alt">
-    <div class="container">
-      <div class="section-head reveal">
-        <span class="eyebrow">Our Team</span>
-        <h2>Meet the people behind the <span class="accent">shine</span>.</h2>
-      </div>
-      <div class="team-grid">
-        <div class="team-card reveal">
-          <div class="team-avatar-placeholder">HN</div>
-          <h4>Hiran Nath</h4><small>Team Lead</small>
-        </div>
-        <div class="team-card reveal">
-          <div class="team-avatar-placeholder">RB</div>
-          <h4>Raju Bhandari</h4><small>Supervisor</small>
-        </div>
-        <div class="team-card reveal">
-          <div class="team-avatar-placeholder">SN</div>
-          <h4>Shankar Nath</h4><small>Specialist &amp; Owner</small>
-        </div>
-        <div class="team-card reveal">
-          <div class="team-avatar-placeholder">AK</div>
-          <h4>Anshik Kewat</h4><small>Operations &amp; Bookings</small>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- TESTIMONIALS -->
-  <section id="reviews" class="section reviews-section">
+  <section id="reviews" class="section section-alt reviews-section">
     <div class="container">
       <div class="section-head reveal">
         <span class="eyebrow"><i class="fa-brands fa-google"></i> Google Reviews</span>
@@ -489,8 +538,60 @@
     </div>
   </section>
 
+  <!-- ABOUT -->
+  <section id="about" class="section">
+    <div class="container about-grid">
+      <div class="about-img reveal">
+        <img src="assets/images/Team_back.jpg" alt="The MyNeedUrban cleaning team in branded uniforms" loading="lazy" decoding="async" />
+        <div class="stat-card">
+          <strong>5+ yrs</strong><small>of trusted service</small>
+        </div>
+      </div>
+      <div class="about-copy reveal">
+        <span class="eyebrow">About MyNeedUrban</span>
+        <h2>Cleaning done right — by people who actually care.</h2>
+        <p>We started MyNeedUrban with a simple idea: make urban cleaning effortless, honest, and genuinely friendly. Every team member is background-verified, trained on modern equipment and eco-safe products, and shows up on time — every time.</p>
+        <ul class="check-list">
+          <li><i class="fa-solid fa-circle-check"></i> Background-verified, trained professionals</li>
+          <li><i class="fa-solid fa-circle-check"></i> Safe, eco-friendly products &amp; modern gear</li>
+          <li><i class="fa-solid fa-circle-check"></i> Transparent pricing — no hidden costs</li>
+          <li><i class="fa-solid fa-circle-check"></i> 100% satisfaction — or we re-clean, free</li>
+        </ul>
+        <button type="button" class="btn btn-primary" data-book=""><i class="fa-solid fa-calendar-check"></i> Book Service</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEAM -->
+  <section id="team" class="section section-alt">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow">Our Team</span>
+        <h2>Meet the people behind the <span class="accent">shine</span>.</h2>
+      </div>
+      <div class="team-grid">
+        <div class="team-card reveal">
+          <div class="team-avatar-placeholder">HN</div>
+          <h4>Hiran Nath</h4><small>Team Lead</small>
+        </div>
+        <div class="team-card reveal">
+          <div class="team-avatar-placeholder">RB</div>
+          <h4>Raju Bhandari</h4><small>Supervisor</small>
+        </div>
+        <div class="team-card reveal">
+          <div class="team-avatar-placeholder">SN</div>
+          <h4>Shankar Nath</h4><small>Specialist &amp; Owner</small>
+        </div>
+        <div class="team-card reveal">
+          <div class="team-avatar-placeholder">AK</div>
+          <h4>Anshik Kewat</h4><small>Tech and Management Partner</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FAQ -->
-  <section id="faq" class="section section-alt">
+  <section id="faq" class="section">
     <div class="container">
       <div class="section-head reveal">
         <span class="eyebrow">FAQ</span>
@@ -498,6 +599,18 @@
       </div>
       <div class="faq">
         <details class="reveal" open>
+          <summary>How do I book?</summary>
+          <p>Tap <strong>Book Service</strong>, pick your service, add your address and preferred date, then confirm on WhatsApp or by phone. You get an order ID straight away, and our team calls to confirm.</p>
+        </details>
+        <details class="reveal">
+          <summary>When do I pay?</summary>
+          <p>After the service — by cash or UPI. For services priced after a site visit, we share the final price once we've reviewed your requirement.</p>
+        </details>
+        <details class="reveal">
+          <summary>Can I track my booking?</summary>
+          <p>Yes. Log in with your mobile number or email and open <strong>My Bookings</strong> to see each order move from placed to confirmed, in progress and completed.</p>
+        </details>
+        <details class="reveal">
           <summary>How soon can you arrive?</summary>
           <p>For standard services we usually offer same-day or next-day slots. Deep cleans are best booked 1–2 days in advance.</p>
         </details>
@@ -522,12 +635,15 @@
   </section>
 
   <!-- CONTACT + MAP -->
-  <section id="contact" class="section">
+  <section id="contact" class="section section-alt">
     <div class="container contact-grid">
       <div class="contact-copy reveal">
-        <span class="eyebrow">Get a Free Quote</span>
-        <h2>Tell us what you need — we'll handle the rest.</h2>
-        <p>Reply within 10 minutes during working hours. No spam, ever.</p>
+        <span class="eyebrow">Talk to us</span>
+        <h2>Prefer to talk it through? We'll call you back.</h2>
+        <p>Leave your number and we'll ring you — we reply within 10 minutes during working hours. No spam, ever.</p>
+        <button type="button" class="btn btn-primary contact-book" data-book="">
+          <i class="fa-solid fa-calendar-check"></i> Or book online now
+        </button>
 
         <ul class="contact-list">
           <li><i class="fa-solid fa-phone"></i> <a href="tel:+919613304724">+91 96133 04724</a> · <a href="tel:+917893304724">+91 78933 04724</a></li>
@@ -556,20 +672,23 @@
           <label>Service</label>
           <select name="service" required>
             <option value="">Select a service</option>
-            <option>Home Cleaning</option>
-            <option>Office Cleaning</option>
-            <option>Deep Cleaning</option>
+            <option>Newly Interior-Completed House</option>
+            <option>Home Deep Cleaning</option>
+            <option>Bungalow / Villa Cleaning</option>
+            <option>Kitchen Cleaning</option>
+            <option>Bathroom Cleaning</option>
             <option>Sofa / Carpet / Mattress</option>
-            <option>Kitchen / Bathroom</option>
-            <option>Villa / Bungalow</option>
-            <option>Other</option>
+            <option>Floor Cleaning</option>
+            <option>Office Cleaning</option>
+            <option>Other Commercial Cleaning</option>
+            <option>Not sure yet</option>
           </select>
         </div>
         <div class="field">
           <label>Tell us more (optional)</label>
           <textarea name="message" rows="4" placeholder="Size of home, preferred date, any special requests..."></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg w-100"><i class="fa-solid fa-paper-plane"></i> Send Request</button>
+        <button type="submit" class="btn btn-primary btn-lg w-100"><i class="fa-solid fa-phone-volume"></i> Request a Call Back</button>
         <p class="form-note" id="formNote"></p>
       </form>
     </div>
@@ -603,18 +722,21 @@
         <h5>Company</h5>
         <ul>
           <li><a href="#about">About</a></li>
-          <li><a href="#services">Services</a></li>
-          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#how">How it works</a></li>
           <li><a href="#reviews">Reviews</a></li>
+          <li><a href="pages/account.html">My Bookings</a></li>
         </ul>
       </div>
       <div>
-        <h5>Services</h5>
+        <h5>Book a service</h5>
+        <!-- data-book opens the booking sheet at that category; the href is a
+             sensible fallback if JavaScript is unavailable. -->
         <ul>
-          <li><a href="#services">Home Cleaning</a></li>
-          <li><a href="#services">Deep Cleaning</a></li>
-          <li><a href="#services">Sofa / Carpet</a></li>
-          <li><a href="#services">Kitchen / Bathroom</a></li>
+          <li><a href="#services" data-book="home">Home Deep Cleaning</a></li>
+          <li><a href="#services" data-book="kitchen">Kitchen Cleaning</a></li>
+          <li><a href="#services" data-book="sofa">Sofa Cleaning</a></li>
+          <li><a href="#services" data-book="bathroom">Bathroom Cleaning</a></li>
+          <li><a href="#services" data-book="">All services</a></li>
         </ul>
       </div>
       <div>
@@ -634,16 +756,18 @@
   </footer>
 
   <!-- Floating WhatsApp -->
-  <a class="wa-float" href="https://wa.me/919613304724?text=Hi%20MyNeedUrban%2C%20I'd%20like%20a%20cleaning%20quote" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
+  <a class="wa-float" href="https://wa.me/919613304724?text=Hi%20MyNeedUrban%2C%20I%27d%20like%20to%20book%20a%20cleaning%20service" target="_blank" rel="noopener" aria-label="Chat on WhatsApp">
     <i class="fa-brands fa-whatsapp"></i>
   </a>
 
-  <script src="js/main.js?v=20260924"></script>
-  <script src="js/pwa.js?v=20260924" defer></script>
-  <script src="js/slider.js?v=20260924"></script>
-  <script type="module" src="js/form.js?v=20260924"></script>
-  <script type="module" src="js/auth.js?v=20260924"></script>
-  <script type="module" src="js/booking.js?v=20260924"></script>
+  <script src="js/main.js?v=20260924b"></script>
+  <script src="js/pwa.js?v=20260924b" defer></script>
+  <script src="js/slider.js?v=20260924b"></script>
+  <script type="module" src="js/form.js?v=20260924b"></script>
+  <script type="module" src="js/auth.js?v=20260924b"></script>
+  <script type="module" src="js/booking.js?v=20260924b"></script>
+  <!-- Bottom tab bar, Menu sheet and phone header icons (<= 768px) -->
+  <script type="module" src="js/app-shell.js?v=20260924b"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">
@@ -651,7 +775,7 @@
       <div class="mnu-modal-head">
         <img src="assets/favicon/MyNeedUrban_favicon_v3.png" alt="Logo" class="modal-logo" />
         <h3>Welcome Back</h3>
-        <p>Login to your account</p>
+        <p id="authModalSub">Login to your account</p>
         <button class="modal-close" data-close-modal><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="auth-tabs-wrap">
@@ -684,8 +808,9 @@
           </div>
           <div class="field">
             <label>Password</label>
-            <input type="password" id="loginPassword" placeholder="Your password" />
+            <input type="password" id="loginPassword" placeholder="Your password" autocomplete="current-password" />
           </div>
+          <button type="button" class="auth-forgot" id="forgotPwBtn">Forgot password?</button>
           <p class="auth-error" id="loginError2"></p>
           <button class="btn btn-primary w-100" id="loginEmailBtn">Login</button>
         </div>

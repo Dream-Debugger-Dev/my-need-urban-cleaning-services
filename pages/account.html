@@ -2,299 +2,123 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>My Account — MyNeedUrban Cleaning Services</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <title>My Bookings — MyNeedUrban</title>
   <link rel="icon" type="image/png" href="../assets/favicon/MyNeedUrban_favicon_v3.png" />
+  <link rel="manifest" href="../manifest.webmanifest" />
+  <meta name="theme-color" content="#0d1b2a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="apple-touch-icon" href="../assets/pwa/apple-touch-icon.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="../css/style.css" />
-  <style>
-    .account-page { max-width: 860px; margin: 0 auto; padding: 100px 24px 80px; }
-    .account-header {
-      display: flex; align-items: center; gap: 20px;
-      background: var(--navy-900); border-radius: var(--radius-lg);
-      padding: 28px; margin-bottom: 32px;
-      border: 1px solid rgba(30,144,255,0.15);
-    }
-    .account-avatar {
-      width: 64px; height: 64px; border-radius: 50%;
-      background: var(--grad-blue); color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem; font-weight: 800; flex-shrink: 0;
-    }
-    .account-info strong { display: block; font-size: 1.15rem; font-weight: 800; color: #fff; }
-    .account-info small { color: var(--blue-400); font-size: .85rem; }
-    .account-badge {
-      margin-left: auto;
-      background: var(--blue-100); color: var(--blue-600);
-      font-size: .72rem; font-weight: 700; padding: 5px 12px; border-radius: 999px;
-      text-transform: uppercase;
-    }
-
-    .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: var(--ink-900); }
-    .booking-card {
-      background: #fff; border: 1px solid var(--line);
-      border-radius: var(--radius-md); padding: 18px 20px;
-      margin-bottom: 12px; transition: box-shadow .2s;
-    }
-    .booking-card:hover { box-shadow: var(--shadow-sm); }
-    .bc-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-    .bc-icon {
-      width: 40px; height: 40px; border-radius: 12px;
-      background: var(--blue-100); color: var(--blue-600);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; flex-shrink: 0;
-    }
-    .bc-name { font-weight: 700; font-size: .95rem; }
-    .bc-path { color: var(--muted); font-size: .8rem; }
-    .bc-status {
-      margin-left: auto; font-size: .72rem; font-weight: 700;
-      padding: 4px 10px; border-radius: 999px; text-transform: uppercase;
-    }
-    .status-pending { background: #fff0e0; color: var(--orange-600); }
-    .status-confirmed { background: #dbeeff; color: var(--blue-600); }
-    .status-inProgress { background: #dbeeff; color: var(--blue-600); }
-    .status-completed { background: #dcfce7; color: #16a34a; }
-    .status-cancelled { background: #fee2e2; color: #dc2626; }
-    .bc-meta { display: flex; flex-wrap: wrap; gap: 12px; font-size: .82rem; color: var(--muted); }
-    .bc-meta span { display: flex; align-items: center; gap: 5px; }
-    .bc-amount { font-weight: 700; color: var(--blue-600); }
-
-    .empty-state { text-align: center; padding: 60px 0; color: var(--muted); }
-    .empty-state i { font-size: 3rem; margin-bottom: 14px; display: block; opacity: .3; }
-    .empty-state p { margin-bottom: 20px; }
-
-    .account-links { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 32px; }
-    .account-link {
-      display: flex; align-items: center; gap: 12px;
-      background: #fff; border: 1px solid var(--line);
-      border-radius: var(--radius-sm); padding: 14px 16px;
-      color: var(--ink-700); font-weight: 600; font-size: .9rem;
-      transition: border-color .2s, color .2s;
-    }
-    .account-link:hover { border-color: var(--blue-400); color: var(--blue-600); }
-    .account-link i { color: var(--blue-500); width: 18px; text-align: center; }
-
-    .logout-btn {
-      margin-top: 20px; width: 100%;
-      background: transparent; border: 1.5px solid #fee2e2;
-      color: #dc2626; border-radius: 999px; padding: 12px;
-      font-family: inherit; font-weight: 700; cursor: pointer;
-      transition: background .2s;
-    }
-    .logout-btn:hover { background: #fee2e2; }
-
-    #loadingState { text-align: center; padding: 40px; color: var(--muted); }
-    #notLoggedIn { text-align: center; padding: 80px 0; }
-    #notLoggedIn h2 { margin-bottom: 8px; }
-    #notLoggedIn p { color: var(--muted); margin-bottom: 24px; }
-  </style>
+  <!-- Same ?v= as index.html and every JS import — see the note in index.html -->
+  <link rel="stylesheet" href="../css/style.css?v=20260924b" />
+  <link rel="stylesheet" href="../css/app.css?v=20260924b" />
+  <link rel="stylesheet" href="../css/account.css?v=20260924b" />
 </head>
-<body>
-  <!-- Simple header -->
+<body data-page="account">
+
   <header class="site-header" id="siteHeader">
     <div class="container header-inner">
-      <a href="../index.html" class="brand">
-        <img src="../assets/logo/MyNeedUrban_logo_v3.png" alt="MyNeedUrban Logo" class="brand-logo" />
+      <a href="../index.html" class="brand" aria-label="MyNeedUrban home">
+        <img src="../assets/logo/MyNeedUrban_logo_v3.png" alt="" class="brand-logo" width="44" height="44" />
         <span class="brand-text"><strong>MyNeedUrban</strong><small>Cleaning Services</small></span>
       </a>
-      <div class="header-cta">
-        <a href="../index.html" class="btn btn-ghost"><i class="fa-solid fa-arrow-left"></i> Back to Home</a>
+      <div class="header-actions">
+        <a class="hdr-icon hdr-wa" href="https://wa.me/919613304724?text=Hi%20MyNeedUrban%2C%20I%20have%20a%20question%20about%20my%20booking"
+           target="_blank" rel="noopener" aria-label="Chat with us on WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+        <a class="btn btn-ghost acct-home" href="../index.html"><i class="fa-solid fa-house"></i> Home</a>
+        <a class="btn btn-primary header-book" href="../index.html?book=root"><i class="fa-solid fa-calendar-check"></i> <span>Book Service</span></a>
       </div>
     </div>
   </header>
 
-  <div class="account-page">
+  <main class="acct" id="main">
+    <div class="container acct-wrap">
 
-    <!-- Not logged in -->
-    <div id="notLoggedIn" style="display:none;">
-      <i class="fa-solid fa-user-lock" style="font-size:3rem;color:var(--blue-400);margin-bottom:16px;display:block;"></i>
-      <h2>Please log in to view your account</h2>
-      <p>Sign in to see your bookings and profile</p>
-      <a href="../index.html" class="btn btn-primary"><i class="fa-solid fa-arrow-left"></i> Go to Homepage</a>
-    </div>
+      <!-- Loading -->
+      <section class="acct-state" id="acctLoading" aria-busy="true" aria-label="Loading your account">
+        <div class="acct-skel acct-skel-profile"></div>
+        <div class="acct-skel"></div>
+        <div class="acct-skel"></div>
+      </section>
 
-    <!-- Loading -->
-    <div id="loadingState">
-      <i class="fa-solid fa-spinner fa-spin" style="font-size:2rem;color:var(--blue-400);"></i>
-      <p style="margin-top:12px;">Loading your account...</p>
-    </div>
+      <!-- Signed out -->
+      <section class="acct-state acct-empty" id="acctSignedOut" hidden>
+        <div class="ae-icon"><i class="fa-solid fa-receipt"></i></div>
+        <h1>Track your bookings</h1>
+        <p>Log in with your mobile number or email to see every booking and its live status.</p>
+        <a class="btn btn-primary btn-lg" href="../index.html?login=1&amp;next=account"><i class="fa-solid fa-right-to-bracket"></i> Log in</a>
+        <p class="ae-note">Booked as a guest? Send us your order ID on
+          <a href="https://wa.me/919613304724?text=Hi%20MyNeedUrban%2C%20my%20order%20ID%20is%20" target="_blank" rel="noopener">WhatsApp</a>
+          and we'll update you.</p>
+      </section>
 
-    <!-- Account content -->
-    <div id="accountContent" style="display:none;">
-      <!-- Profile header -->
-      <div class="account-header">
-        <div class="account-avatar" id="accountAvatar">U</div>
-        <div class="account-info">
-          <strong id="accountName">User</strong>
-          <small id="accountContact">—</small>
+      <!-- Signed in -->
+      <section id="acctMain" hidden>
+        <div class="ap-card">
+          <div class="ap-avatar" id="apAvatar" aria-hidden="true"></div>
+          <div class="ap-info">
+            <h1 id="apName">Your account</h1>
+            <p id="apContact"></p>
+          </div>
+          <button type="button" class="ap-edit" id="apEditBtn" aria-expanded="false" aria-controls="apForm" aria-label="Edit profile">
+            <i class="fa-solid fa-pen"></i><span>Edit</span>
+          </button>
         </div>
-        <span class="account-badge" id="accountRole">Customer</span>
-      </div>
 
-      <!-- Bookings -->
-      <p class="section-title"><i class="fa-solid fa-receipt" style="color:var(--blue-500);margin-right:6px;"></i> My Bookings</p>
-      <div id="bookingsList">
-        <div class="empty-state">
-          <i class="fa-solid fa-box-open"></i>
-          <p>No bookings yet</p>
-          <a href="../index.html#services" class="btn btn-primary">Book a Service</a>
+        <form class="ap-form" id="apForm" hidden novalidate>
+          <div class="ap-fields">
+            <label class="ap-field"><span>Full name</span>
+              <input class="field-input" id="pfName" autocomplete="name" maxlength="60" /></label>
+            <label class="ap-field"><span>Mobile number</span>
+              <input class="field-input" id="pfPhone" type="tel" inputmode="numeric" maxlength="10" autocomplete="tel-national" /></label>
+            <label class="ap-field"><span>Alternate number <em>(optional)</em></span>
+              <input class="field-input" id="pfAlt" type="tel" inputmode="numeric" maxlength="10" /></label>
+          </div>
+          <p class="ap-msg" id="pfMsg" role="status"></p>
+          <div class="ap-form-btns">
+            <button type="button" class="btn btn-outline" id="pfCancel">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="pfSave">Save</button>
+          </div>
+          <small class="ap-hint">We use these details to fill in your next booking for you.</small>
+        </form>
+
+        <div class="acct-stats" id="acctStats"></div>
+
+        <div class="acct-tabs" role="tablist" aria-label="Bookings">
+          <button type="button" role="tab" class="acct-tab is-active" data-tab="upcoming" aria-selected="true">Upcoming <span class="count" id="cntUpcoming">0</span></button>
+          <button type="button" role="tab" class="acct-tab" data-tab="past" aria-selected="false">Past <span class="count" id="cntPast">0</span></button>
         </div>
-      </div>
 
-      <!-- Quick links -->
-      <div class="account-links">
-        <a href="tel:+919613304724" class="account-link"><i class="fa-solid fa-phone"></i> Call Us</a>
-        <a href="https://wa.me/919613304724" target="_blank" rel="noopener" class="account-link"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
-        <a href="terms.html" class="account-link"><i class="fa-solid fa-file-contract"></i> Terms</a>
-        <a href="privacy.html" class="account-link"><i class="fa-solid fa-shield-halved"></i> Privacy</a>
-      </div>
+        <div class="acct-list" id="acctList" role="tabpanel" aria-live="polite"></div>
 
-      <button class="logout-btn" id="logoutBtn"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
+        <div class="acct-help">
+          <div>
+            <strong>Need help with a booking?</strong>
+            <small>We reply within 10 minutes during working hours.</small>
+          </div>
+          <div class="acct-help-btns">
+            <a class="btn btn-outline" href="tel:+919613304724"><i class="fa-solid fa-phone"></i> Call</a>
+            <a class="btn btn-whatsapp" href="https://wa.me/919613304724" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> WhatsApp</a>
+          </div>
+        </div>
+
+        <button type="button" class="acct-signout" id="signOutBtn"><i class="fa-solid fa-right-from-bracket"></i> Log out</button>
+      </section>
     </div>
-  </div>
+  </main>
 
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-app.js';
-    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-auth.js';
-    import { getFirestore, collection, query, where, orderBy, onSnapshot, doc, getDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js';
+  <div id="mnuToast"></div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCPcuAit4o2Kc_EQ6QDinIg2VArOhYfikg",
-      authDomain: "myneedurban-ec1c9.firebaseapp.com",
-      projectId: "myneedurban-ec1c9",
-      storageBucket: "myneedurban-ec1c9.firebasestorage.app",
-      messagingSenderId: "938179747414",
-      appId: "1:938179747414:web:b60e962c9521f3fc96e5f7"
-    };
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-
-    const loadingEl = document.getElementById('loadingState');
-    const notLoggedEl = document.getElementById('notLoggedIn');
-    const contentEl = document.getElementById('accountContent');
-
-    onAuthStateChanged(auth, async (user) => {
-      loadingEl.style.display = 'none';
-      if (!user) {
-        notLoggedEl.style.display = 'block';
-        return;
-      }
-      contentEl.style.display = 'block';
-
-      // Load profile
-      const snap = await getDoc(doc(db, 'users', user.uid));
-      const profile = snap.data() || {};
-      const name = profile.name || user.displayName || 'User';
-      const initials = name.substring(0, Math.min(2, name.length)).toUpperCase();
-      document.getElementById('accountAvatar').textContent = initials;
-      document.getElementById('accountName').textContent = name;
-      document.getElementById('accountContact').textContent = profile.phone || user.phoneNumber || user.email || '';
-      document.getElementById('accountRole').textContent = (profile.role || 'customer').toUpperCase();
-
-      // Load bookings
-      const q = query(
-        collection(db, 'bookings'),
-        where('customerId', '==', user.uid),
-        orderBy('createdAt', 'desc')
-      );
-      onSnapshot(q, (snapshot) => {
-        const docs = snapshot.docs;
-        const list = document.getElementById('bookingsList');
-        if (docs.length === 0) {
-          list.innerHTML = `<div class="empty-state">
-            <i class="fa-solid fa-box-open"></i>
-            <p>No bookings yet</p>
-            <a href="../index.html#services" class="btn btn-primary">Book a Service</a>
-          </div>`;
-          return;
-        }
-        list.innerHTML = docs.map(d => {
-          const b = d.data();
-          const status = b.status || 'pending';
-          const statusClass = 'status-' + status;
-          const dateStr = b.scheduledDate
-            ? new Date(b.scheduledDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-            : '';
-          // Order progress tracker. 'cancelled' opts out of the timeline.
-          const STAGES = [
-            { key: 'pending',    label: 'Placed',      icon: 'fa-receipt' },
-            { key: 'confirmed',  label: 'Confirmed',   icon: 'fa-circle-check' },
-            { key: 'inProgress', label: 'In Progress', icon: 'fa-broom' },
-            { key: 'completed',  label: 'Completed',   icon: 'fa-flag-checkered' },
-          ];
-          const stageIdx = STAGES.findIndex(s => s.key === status);
-          const isCancelled = status === 'cancelled';
-
-          const tracker = isCancelled
-            ? `<div class="bc-cancelled"><i class="fa-solid fa-ban"></i> This booking was cancelled</div>`
-            : `<div class="bc-track">
-                 ${STAGES.map((s, i) => `
-                   <div class="bct-step ${i <= stageIdx ? 'done' : ''} ${i === stageIdx ? 'current' : ''}">
-                     <div class="bct-dot"><i class="fa-solid ${i < stageIdx ? 'fa-check' : s.icon}"></i></div>
-                     <span>${s.label}</span>
-                   </div>
-                   ${i < STAGES.length - 1 ? `<div class="bct-line ${i < stageIdx ? 'done' : ''}"></div>` : ''}
-                 `).join('')}
-               </div>`;
-
-          const created = b.createdAt?.toDate
-            ? b.createdAt.toDate().toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-            : '';
-
-          return `
-            <div class="booking-card">
-              <div class="bc-top">
-                <div class="bc-icon"><i class="fa-solid fa-spray-can-sparkles"></i></div>
-                <div>
-                  <div class="bc-name">${b.serviceName || '-'}</div>
-                  <div class="bc-path">${b.servicePath || b.packageType || ''}</div>
-                </div>
-                <span class="bc-status ${statusClass}">${status}</span>
-              </div>
-
-              ${b.orderId ? `
-              <div class="bc-order">
-                <span class="bc-order-id"><i class="fa-solid fa-hashtag"></i> ${b.orderId}</span>
-                ${created ? `<span class="bc-order-date">${created}</span>` : ''}
-              </div>` : ''}
-
-              ${tracker}
-
-              <div class="bc-meta">
-                ${dateStr ? `<span><i class="fa-solid fa-calendar"></i> ${dateStr}</span>` : ''}
-                ${b.timeSlot ? `<span><i class="fa-solid fa-clock"></i> ${b.timeSlot}</span>` : ''}
-                ${b.address ? `<span><i class="fa-solid fa-location-dot"></i> ${b.address.split('\n')[0]}</span>` : ''}
-                ${b.amount > 0
-                  ? `<span class="bc-amount">₹${b.amount} · Pay after service</span>`
-                  : `<span class="bc-amount">Quote requested</span>`}
-              </div>
-
-              <div class="bc-actions">
-                ${b.mapsLink ? `<a class="bc-link" href="${b.mapsLink}" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> View location</a>` : ''}
-                <a class="bc-link" href="https://wa.me/919613304724?text=${encodeURIComponent('Hi MyNeedUrban, I have a question about my order ' + (b.orderId || ''))}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> Ask about this order</a>
-                ${status === 'pending' ? `<button class="bc-link bc-link-danger" onclick="cancelBooking('${d.id}')"><i class="fa-solid fa-xmark"></i> Cancel</button>` : ''}
-              </div>
-            </div>
-          `;
-        }).join('');
-      });
-
-      // Logout
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        await signOut(auth);
-        window.location.href = '../index.html';
-      });
-    });
-
-    window.cancelBooking = async (docId) => {
-      if (!confirm('Cancel this booking?')) return;
-      const { doc: firestoreDoc, updateDoc: firestoreUpdate } = await import('https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore.js');
-      await firestoreUpdate(firestoreDoc(db, 'bookings', docId), { status: 'cancelled' });
-    };
-  </script>
+  <script src="../js/pwa.js?v=20260924b" defer></script>
+  <script type="module" src="../js/account.js?v=20260924b"></script>
+  <script type="module" src="../js/app-shell.js?v=20260924b"></script>
 </body>
 </html>

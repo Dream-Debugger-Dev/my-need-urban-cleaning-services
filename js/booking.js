@@ -3,8 +3,12 @@
    Booking wizard: no login gate, WhatsApp / Call CTA at end
    =============================== */
 
-import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js';
-import { showToast, openModal } from './auth.js';
+// Every import carries the same ?v= as the HTML. A module imported under two
+// different URLs runs twice — that is how auth.js ended up with doubled login
+// handlers (two OTP SMS per tap). Keep all ?v= values identical on deploy.
+import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js?v=20260924b';
+import { showToast } from './auth.js?v=20260924b';
+import { makeOrderId } from './order-id.js?v=20260924b';
 
 // ─── Service Catalog ──────────────────────────────────────────────────────────
 
@@ -143,7 +147,7 @@ const INTERIOR_NOT_COVERED = [
 
 const INTERIOR_NOTES = [
   'One member of the family needs to be present at the property throughout the day while our team is working.',
-  "If your home's size isn't listed, choose \"Other\" — we'll visit the site and share a quotation.",
+  "If your home's size isn't listed, choose \"Other\" — we'll visit the site and confirm the price.",
 ];
 
 const INTERIOR_PROVIDES = [
@@ -379,13 +383,13 @@ const SERVICE_CATALOG = [
       interiorTier('interior-3bhk', '3 BHK', 'Up to 1800 sq ft', 9499),
       interiorTier('interior-4bhk', '4 BHK', 'Up to 2400 sq ft', 13999),
       interiorTier('interior-5bhk', '5 BHK', 'Up to 2800 sq ft', 17999),
-      interiorTier('interior-other', 'Other / Larger Home', 'Site visit, then quotation', null, {
+      interiorTier('interior-other', 'Other / Larger Home', 'Site visit, then final price', null, {
         requirementHint: 'Tell us your BHK and approximate built-up area (sq ft), and we\'ll arrange a site visit.',
       }),
     ],
   },
   {
-    id: 'deep', title: 'Deep Cleaning', icon: 'fa-broom',
+    id: 'deep', title: 'Home Deep Cleaning', icon: 'fa-broom',
     subtitle: 'Unfurnished & Furnished premium packages',
     children: [
       {
@@ -552,7 +556,7 @@ const SERVICE_CATALOG = [
         ],
         notCovered: [
           'Removal of paint, ink or permanent stains',
-          'Leather chairs (quoted separately)',
+          'Leather chairs (priced separately)',
           'Chair repairs or reupholstery',
         ],
         notes: [
@@ -596,7 +600,7 @@ const SERVICE_CATALOG = [
         ],
         notCovered: [
           'Removal of paint or ink stains',
-          'Leather sofas (quoted separately)',
+          'Leather sofas (priced separately)',
           'Cushion or fabric repairs',
         ],
         notes: [
@@ -620,7 +624,7 @@ const SERVICE_CATALOG = [
         notCovered: [
           'Industrial kitchen equipment cleaning',
           'Gas pipeline or electrical work',
-          'Full kitchen deep clean (quoted separately)',
+          'Full kitchen deep clean (priced separately)',
         ],
         notes: [
           'Final price depends on pantry size and condition.',
@@ -721,7 +725,7 @@ const SERVICE_CATALOG = [
       'Heavy machinery or industrial equipment cleaning',
     ],
     notes: [
-      'Pricing and quotation will be finalised after our team visits your premises.',
+      'Pricing will be finalised after our team visits your premises.',
       'Please ensure access to all areas that need cleaning before the visit.',
       'One staff member should be available on site during the cleaning.',
     ],
@@ -734,9 +738,115 @@ const SERVICE_CATALOG = [
 // visitor who clicked "Bungalow Cleaning" doesn't suddenly see "Deep Cleaning".
 // NOTE: 'bungalow' used to alias to the apartment deep-clean catalog. It now
 // has its own area-based catalog, so the alias was removed.
+// The homepage card and the catalog now share the title "Home Deep Cleaning",
+// so saveBooking() records enquiredVia = null for this entry (it only records
+// an alias when its title differs from the catalog's).
 const SERVICE_ALIASES = {
-  home: { target: 'deep', title: 'Home Cleaning' },
+  home: { target: 'deep', title: 'Home Deep Cleaning' },
 };
+
+// ─── Service search ───────────────────────────────────────────────────────────
+// Words customers actually type, attached to the TOP-LEVEL node only. Putting
+// them on every descendant made "chimney" return all eight kitchen packages;
+// leaves are matched on their own title, subtitle and path instead.
+const SEARCH_SYNONYMS = {
+  'interior-done': ['new house', 'new flat', 'handover', 'post construction', 'after interior', 'paint marks', 'sticker', 'move in'],
+  deep:       ['home', 'house', 'flat', 'apartment', 'full home', 'full house', 'bhk', 'move in', 'shifting', 'vacate'],
+  bungalow:   ['villa', 'independent house', 'duplex', 'big house'],
+  bathroom:   ['toilet', 'washroom', 'restroom', 'bath'],
+  kitchen:    ['chimney', 'fridge', 'refrigerator', 'microwave', 'oven', 'stove', 'hob', 'cabinet', 'appliance'],
+  sofa:       ['couch', 'seater', 'seats', 'upholstery', 'settee'],
+  carpet:     ['rug'],
+  mattress:   ['bed'],
+  office:     ['workplace', 'corporate', 'pantry', 'chair', 'workstation', 'cabin', 'desk'],
+  floor:      ['tiles', 'tile', 'marble', 'granite', 'scrubbing'],
+  commercial: ['salon', 'spa', 'hostel', 'pg', 'clinic', 'pharmacy', 'bank', 'shop', 'showroom', 'store', 'restaurant', 'dining', 'school', 'cafe', 'gym'],
+};
+
+const normText = s => String(s || '').toLowerCase()
+  .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+let _searchIndex = null;
+
+/** Flattens the catalog once into searchable entries. */
+function buildSearchIndex() {
+  const out = [];
+  const walk = (nodes, trail) => {
+    for (const n of nodes) {
+      const path = [...trail, n];
+      const syn = trail.length === 0 ? (SEARCH_SYNONYMS[n.id] || []).join(' ') : '';
+      const hay = normText([n.title, n.subtitle, ...path.map(p => p.title), syn].join(' '));
+      // Squashed copy so "2bhk" still matches "2 BHK"
+      out.push({ node: n, path, title: normText(n.title), hay: `${hay} ${hay.replace(/ /g, '')}` });
+      if (n.children) walk(n.children, path);
+    }
+  };
+  walk(SERVICE_CATALOG, []);
+  return out;
+}
+
+/** Ranked matches for a free-text query. Every word must match (AND). */
+function searchCatalog(query, max = 12) {
+  const tokens = normText(query).split(' ').filter(Boolean);
+  if (!tokens.length) return [];
+  _searchIndex = _searchIndex || buildSearchIndex();
+  const joined = tokens.join(' ');
+  // Numbers must match whole: "2" in "2 bhk" must not hit "up to 2400 sq ft".
+  const hit = (hay, t) => /^\d+$/.test(t)
+    ? new RegExp(`(^|\\s)${t}(\\s|$)`).test(hay)
+    : hay.includes(t);
+  const scored = [];
+  for (const e of _searchIndex) {
+    if (!tokens.every(t => hit(e.hay, t))) continue;
+    let score = 0;
+    if (e.title === joined) score += 100;
+    if (e.title.startsWith(tokens[0])) score += 40;
+    for (const t of tokens) if (e.title.includes(t)) score += 15;
+    if (e.path.length === 1) score += 8;   // whole categories first for vague queries
+    if (e.node.isLeaf) score += 5;
+    scored.push({ ...e, score });
+  }
+  scored.sort((a, b) => b.score - a.score || a.path.length - b.path.length);
+  return scored.slice(0, max);
+}
+
+// ─── Starting prices ──────────────────────────────────────────────────────────
+/** Cheapest fixed price anywhere under a node, or null if it is quote-only. */
+function minFixedPrice(node) {
+  if (!node) return null;
+  if (node.isLeaf) return node.isFixed && node.price ? { price: node.price, unit: node.priceUnit } : null;
+  let best = null;
+  for (const c of node.children || []) {
+    const p = minFixedPrice(c);
+    if (p && (!best || p.price < best.price)) best = p;
+  }
+  return best;
+}
+
+/** " / bathroom" for per-unit prices, "" for per-visit ones. */
+const unitSuffix = unit => (unit && unit !== 'per visit') ? ` / ${unit.replace(/^per /, '')}` : '';
+
+/** Plain-text starting price, e.g. "From ₹3,899" or "Site visit". */
+function fromLabel(node) {
+  const p = minFixedPrice(node);
+  return p ? `From ₹${inr(p.price)}${unitSuffix(p.unit)}` : 'Site visit · custom price';
+}
+
+/** Parent node of `id`: null for top-level, undefined if not found. */
+function parentOf(id, nodes = SERVICE_CATALOG, parent = null) {
+  for (const n of nodes) {
+    if (n.id === id) return parent;
+    if (n.children) {
+      const p = parentOf(id, n.children, n);
+      if (p !== undefined) return p;
+    }
+  }
+  return undefined;
+}
+
+/** Escapes text for safe insertion into HTML. */
+const escHtml = s => String(s ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let _selectedService = null;
@@ -747,6 +857,8 @@ let _entryTitle = null;      // heading to show for the aliased entry level
 let _entryCatalogId = null;  // catalog id the heading applies to
 let _selectedVenueType = ''; // for commercial cleaning — which venue type was chosen
 let _customVenueName = '';   // free-text when "Other" is picked
+let _searchQuery = '';       // root-level service search; kept while browsing
+let _lastViewKey = '';       // resets scroll only when the view actually changes
 
 /**
  * Venue types for Other Commercial Cleaning.
@@ -823,6 +935,8 @@ function prefillContactFromProfile() {
     const raw = p.phone || user.phoneNumber || '';
     c.phone = String(raw).replace(/\D/g, '').slice(-10);
   }
+  // Saved from the My Bookings profile editor
+  if (!c.altPhone && p.altPhone) c.altPhone = String(p.altPhone).replace(/\D/g, '').slice(-10);
 }
 
 const yyyymmdd = d => d.toISOString().slice(0, 10);
@@ -911,28 +1025,7 @@ function hasQuantity(svc) {
   return !!(svc.isFixed && svc.priceUnit?.startsWith('per ') && !svc.priceUnit?.includes('visit'));
 }
 
-/**
- * Human-friendly order id: MNU-YYMMDD-XXXX
- * Ambiguous characters (0/O, 1/I/L, 2/Z, 5/S, 8/B) are excluded because staff
- * read these out over the phone.
- */
-function makeOrderId() {
-  const d = new Date();
-  const ymd = String(d.getFullYear()).slice(2)
-            + String(d.getMonth() + 1).padStart(2, '0')
-            + String(d.getDate()).padStart(2, '0');
-  const CHARS = 'ACDEFGHJKMNPQRTUVWXY34679';
-  // Crypto-backed randomness where available, so two customers booking in the
-  // same second can't land on the same id. 25^5 ≈ 9.8M combos per day.
-  const n = 5;
-  const bytes = new Uint8Array(n);
-  if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
-  else for (let i = 0; i < n; i++) bytes[i] = Math.floor(Math.random() * 256);
-
-  let tail = '';
-  for (let i = 0; i < n; i++) tail += CHARS[bytes[i] % CHARS.length];
-  return `MNU-${ymd}-${tail}`;
-}
+// Order ids (MNU-YYMMDD-XXXXX) come from ./order-id.js, shared with form.js.
 
 /**
  * Persists the enquiry so it shows up in the customer's profile and the
@@ -1057,8 +1150,8 @@ function buildWhatsAppMessage(orderId) {
     }
     L.push('_Pay after the service is completed._');
   } else {
-    L.push('Custom quote — to be confirmed');
-    L.push('_Our team will review the details and share a quotation._');
+    L.push('Custom price — to be confirmed');
+    L.push('_Our team will review the details and confirm the price._');
   }
   L.push('');
 
@@ -1140,7 +1233,14 @@ function buildWhatsAppMessage(orderId) {
 }
 
 // ─── Open booking (no login required — user can explore freely) ───────────────
-export function openBooking(serviceId) {
+/**
+ * Opens the booking sheet.
+ *   openBooking()            → every category, with search
+ *   openBooking('kitchen')   → that category's packages
+ *   openBooking('sofa-5-seats') → straight to that package's details
+ * opts.focusSearch focuses the search box (used by the "Search" buttons).
+ */
+export function openBooking(serviceId, opts = {}) {
   _step = 0;
   _selectedService = null;
   _quantity = 1;
@@ -1149,20 +1249,27 @@ export function openBooking(serviceId) {
   _entryCatalogId = null;
   _selectedVenueType = '';
   _customVenueName = '';
+  _searchQuery = opts.query || '';
+  _lastViewKey = '';
   // Address is customer-specific, so keep it between bookings in the same
   // session (saves re-typing six fields). Notes are service-specific, so clear.
   window._bookingAddress = composeAddress();
   window._bookingNotes = '';
 
   if (serviceId) {
-    // Resolve marketing aliases (e.g. "home"/"bungalow" → the deep-clean catalog)
+    // Resolve marketing aliases (e.g. "home" → the deep-clean catalog)
     const alias = SERVICE_ALIASES[serviceId];
     const lookupId = alias ? alias.target : serviceId;
 
     const found = findService(lookupId, SERVICE_CATALOG);
     if (found) {
-      if (found.isLeaf) { _selectedService = found; _step = 1; }
-      else {
+      if (found.isLeaf) {
+        _selectedService = found;
+        _step = 1;
+        // Remember the list it came from, so "Back" shows its siblings
+        // instead of dumping the customer at the very top.
+        _currentCatalog = parentOf(found.id) || null;
+      } else {
         _currentCatalog = found;
         if (alias) { _entryTitle = alias.title; _entryCatalogId = found.id; }
       }
@@ -1170,6 +1277,33 @@ export function openBooking(serviceId) {
   }
   document.getElementById('bookingModal')?.classList.add('modal-open');
   document.body.style.overflow = 'hidden';
+  renderBookingStep();
+
+  if (opts.focusSearch && _step === 0 && !_currentCatalog) {
+    // Wait for the sheet's slide-in so mobile browsers accept the focus
+    setTimeout(() => document.getElementById('svcSearch')?.focus(), 80);
+  }
+}
+
+/** Closes the booking sheet and restores page scrolling. */
+function closeBooking() {
+  document.getElementById('bookingModal')?.classList.remove('modal-open');
+  document.body.style.overflow = '';
+}
+
+/** Navigates to any catalog node — used by search results and root tiles. */
+function goToNode(id) {
+  const node = findService(id, SERVICE_CATALOG);
+  if (!node) return;
+  if (node.isLeaf) {
+    _selectedService = node;
+    _currentCatalog = parentOf(node.id) || null;
+    _quantity = 1;
+    _step = 1;
+  } else {
+    _currentCatalog = node;
+    _step = 0;
+  }
   renderBookingStep();
 }
 
@@ -1181,17 +1315,21 @@ function renderBookingStep() {
   const progress = modal.querySelector('.booking-progress');
   const title    = modal.querySelector('.booking-title');
 
-  if (_step === 0) {
+  if (_step === 0 && !_currentCatalog) {
+    title.textContent = 'Book a Service';
+    progress.innerHTML = renderProgress(0);
+    body.innerHTML = renderRootHTML();
+    attachRootEvents(body);
+  } else if (_step === 0) {
     // Show the entry card's own name at the level it opened; deeper levels use
     // the real catalog title.
-    title.textContent = _currentCatalog
-      ? (_entryTitle && _currentCatalog.id === _entryCatalogId ? _entryTitle : _currentCatalog.title)
-      : 'Select a Service';
+    title.textContent = _entryTitle && _currentCatalog.id === _entryCatalogId
+      ? _entryTitle : _currentCatalog.title;
     progress.innerHTML = renderProgress(0);
-    body.innerHTML = renderCatalogHTML(_currentCatalog ? _currentCatalog.children : SERVICE_CATALOG);
+    body.innerHTML = renderCatalogHTML(_currentCatalog.children);
     attachCatalogEvents(body);
   } else if (_step === 1) {
-    title.textContent = _selectedService.isFixed ? 'Package Details' : 'Request a Quote';
+    title.textContent = _selectedService.isFixed ? 'Package Details' : 'Service Details';
     progress.innerHTML = renderProgress(1);
     body.innerHTML = renderDetailsStep();
     attachDetailsEvents(body);
@@ -1209,6 +1347,16 @@ function renderBookingStep() {
     body.innerHTML = renderSummaryStep();
     attachSummaryEvents(body);
   }
+
+  // New screen → start at the top. The quantity stepper re-renders the same
+  // screen, so it keeps its scroll position.
+  const key = `${_step}|${_currentCatalog?.id || ''}|${_selectedService?.id || ''}`;
+  if (key !== _lastViewKey) {
+    _lastViewKey = key;
+    body.scrollTop = 0;
+    const box = modal.querySelector('.mnu-modal-box');
+    if (box) box.scrollTop = 0;
+  }
 }
 
 function renderProgress(active) {
@@ -1223,37 +1371,178 @@ function renderProgress(active) {
 }
 
 // ─── Step 0: Catalog ──────────────────────────────────────────────────────────
-function renderCatalogHTML(items) {
-  return `<div class="catalog-list">${items.map(item => `
-    <div class="catalog-item" data-id="${item.id}" data-leaf="${item.isLeaf || false}">
-      <div class="ci-icon"><i class="fa-solid ${item.icon}"></i></div>
-      <div class="ci-info">
-        <strong>${item.title}</strong>
-        ${item.subtitle ? `<small>${item.subtitle}</small>` : ''}
-      </div>
-      ${item.isLeaf && item.isFixed
-        ? `<div class="ci-price-wrap">
-            ${item.mrp ? `<span class="ci-mrp">₹${item.mrp}</span>` : ''}
-            <span class="ci-price">₹${item.price}</span>
-           </div>`
-        : item.isLeaf
-          ? `<span class="ci-quote">Get Quote</span>`
-          : `<i class="fa-solid fa-chevron-right ci-arrow"></i>`}
+// Root level: search + every category as a tile. Rendered as <button>s so the
+// whole sheet works with a keyboard and screen reader, not just a mouse.
+function renderRootHTML() {
+  const q = _searchQuery;
+  const help = encodeURIComponent("Hi MyNeedUrban, I'm not sure which cleaning service I need. Can you help?");
+  return `
+    <div class="svc-search">
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      <input id="svcSearch" type="search" inputmode="search" enterkeyhint="search" autocomplete="off"
+             placeholder="Search — sofa, chimney, 2 BHK, villa…" value="${escHtml(q)}"
+             aria-label="Search services" aria-controls="svcResults" />
+      <button type="button" class="svc-search-clear" id="svcSearchClear" aria-label="Clear search" ${q ? '' : 'hidden'}>
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
+    <div class="svc-results" id="svcResults" role="list" aria-live="polite" ${q ? '' : 'hidden'}>${q ? renderResultsHTML(q) : ''}</div>
+    <div id="svcRoot" ${q ? 'hidden' : ''}>
+      <p class="root-hint">Choose a category</p>
+      <div class="root-grid">
+        ${SERVICE_CATALOG.map(n => `
+          <button type="button" class="root-tile" data-id="${n.id}">
+            <span class="rt-icon"><i class="fa-solid ${n.icon}"></i></span>
+            <span class="rt-title">${escHtml(n.title)}</span>
+            <span class="rt-from ${minFixedPrice(n) ? '' : 'is-quote'}">${escHtml(fromLabel(n))}</span>
+          </button>`).join('')}
+      </div>
+      <p class="root-help">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        Not sure what you need?
+        <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${help}" target="_blank" rel="noopener">Ask us on WhatsApp</a>
+      </p>
+    </div>`;
+}
+
+function resultPriceLabel(n) {
+  if (n.isLeaf) {
+    return n.isFixed ? `₹${inr(n.price)}${unitSuffix(n.priceUnit)}` : 'Custom price';
+  }
+  return fromLabel(n);
+}
+
+function renderResultsHTML(q) {
+  const hits = searchCatalog(q);
+  if (!hits.length) {
+    const ask = encodeURIComponent(`Hi MyNeedUrban, do you offer "${q}" cleaning?`);
+    return `
+      <div class="sr-empty">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <p>No service matches “${escHtml(q)}”.</p>
+        <small>Try a simpler word like “sofa” or “kitchen”, or
+          <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${ask}" target="_blank" rel="noopener">ask us on WhatsApp</a>.</small>
+      </div>`;
+  }
+  return hits.map(h => {
+    const crumb = h.path.length > 1
+      ? h.path.slice(0, -1).map(p => p.title).join(' › ')
+      : (h.node.subtitle || '');
+    return `
+      <button type="button" class="sr-item" role="listitem" data-id="${h.node.id}">
+        <span class="sr-icon"><i class="fa-solid ${h.node.icon}"></i></span>
+        <span class="sr-text">
+          <strong>${escHtml(h.node.title)}</strong>
+          ${crumb ? `<small>${escHtml(crumb)}</small>` : ''}
+        </span>
+        <span class="sr-price">${escHtml(resultPriceLabel(h.node))}</span>
+      </button>`;
+  }).join('');
+}
+
+function attachRootEvents(body) {
+  const input   = body.querySelector('#svcSearch');
+  const results = body.querySelector('#svcResults');
+  const root    = body.querySelector('#svcRoot');
+  const clear   = body.querySelector('#svcSearchClear');
+
+  const refresh = () => {
+    const q = _searchQuery.trim();
+    results.hidden = !q;
+    root.hidden = !!q;
+    clear.hidden = !_searchQuery;
+    results.innerHTML = q ? renderResultsHTML(q) : '';
+  };
+
+  let t = null;
+  input?.addEventListener('input', () => {
+    _searchQuery = input.value;
+    clearTimeout(t);
+    t = setTimeout(refresh, 90);   // update results without re-rendering the input
+  });
+  input?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      clearTimeout(t); refresh();
+      results.querySelector('.sr-item')?.click();
+    }
+  });
+  clear?.addEventListener('click', () => {
+    _searchQuery = '';
+    input.value = '';
+    refresh();
+    input.focus();
+  });
+
+  // Delegated, because results are replaced on every keystroke. .booking-body
+  // outlives each render, so bind once or listeners stack up per visit.
+  if (!body.dataset.rootDelegated) {
+    body.dataset.rootDelegated = '1';
+    body.addEventListener('click', e => {
+      const hit = e.target.closest('.sr-item, .root-tile');
+      if (hit && body.contains(hit)) goToNode(hit.dataset.id);
+    });
+  }
+}
+
+function renderCatalogHTML(items) {
+  const parent = parentOf(_currentCatalog.id);
+  const backLabel = parent ? parent.title : 'All services';
+  return `
+    <button type="button" class="cat-back" id="catBack">
+      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> ${escHtml(backLabel)}
+    </button>
+    <div class="catalog-list">${items.map(item => `
+    <button type="button" class="catalog-item" data-id="${item.id}" data-leaf="${item.isLeaf || false}">
+      <span class="ci-icon"><i class="fa-solid ${item.icon}"></i></span>
+      <span class="ci-info">
+        <strong>${escHtml(item.title)}</strong>
+        ${item.subtitle ? `<small>${escHtml(item.subtitle)}</small>` : ''}
+      </span>
+      ${item.isLeaf && item.isFixed
+        ? `<span class="ci-price-wrap">
+            ${item.mrp ? `<span class="ci-mrp">₹${inr(item.mrp)}</span>` : ''}
+            <span class="ci-price">₹${inr(item.price)}</span>
+           </span>`
+        : item.isLeaf
+          ? `<span class="ci-quote">Custom price</span>`
+          : `<span class="ci-group-from">${escHtml(fromLabel(item).replace(' · custom price', ''))}</span>
+             <i class="fa-solid fa-chevron-right ci-arrow" aria-hidden="true"></i>`}
+    </button>
   `).join('')}</div>`;
 }
 
 function attachCatalogEvents(body) {
+  body.querySelector('#catBack')?.addEventListener('click', () => {
+    _currentCatalog = parentOf(_currentCatalog.id) || null;
+    _step = 0;
+    renderBookingStep();
+  });
   body.querySelectorAll('.catalog-item').forEach(el => {
     el.addEventListener('click', () => {
       const id = el.dataset.id;
       const isLeaf = el.dataset.leaf === 'true';
       const node = findService(id, SERVICE_CATALOG);
       if (!node) return;
-      if (isLeaf) { _selectedService = node; _step = 1; }
+      if (isLeaf) { _selectedService = node; _quantity = 1; _step = 1; }
       else { _currentCatalog = node; _step = 0; }
       renderBookingStep();
     });
+  });
+}
+
+/** Writes each homepage card's "From ₹…" line from the catalog. */
+function paintFromPrices() {
+  document.querySelectorAll('[data-from-for]').forEach(el => {
+    const id = el.dataset.fromFor;
+    const alias = SERVICE_ALIASES[id];
+    const node = findService(alias ? alias.target : id, SERVICE_CATALOG);
+    if (!node) return;
+    const p = minFixedPrice(node);
+    el.innerHTML = p
+      ? `From <strong>₹${inr(p.price)}</strong>${escHtml(unitSuffix(p.unit))}`
+      : '<strong>Site visit</strong> · custom price';
+    el.classList.toggle('is-quote', !p);
   });
 }
 
@@ -1274,10 +1563,10 @@ function renderDetailsStep() {
       <span>${svc.title}</span>
       ${svc.isFixed
         ? `<div class="chip-price">
-            ${svc.mrp ? `<s class="chip-mrp">₹${svc.mrp}</s>` : ''}
-            <strong>₹${svc.price}</strong>
+            ${svc.mrp ? `<s class="chip-mrp">₹${inr(svc.mrp)}</s>` : ''}
+            <strong>₹${inr(svc.price)}${unitSuffix(svc.priceUnit)}</strong>
            </div>`
-        : '<strong>Get a Quote</strong>'}
+        : '<strong>Custom price</strong>'}
     </div>
 
     ${covered.length ? `
@@ -1341,7 +1630,7 @@ function renderDetailsStep() {
           placeholder="${venueAsk(_selectedVenueType)}">${window._bookingNotes || ''}</textarea>
         <p class="venue-note">
           <i class="fa-solid fa-circle-info"></i>
-          Pricing and quotation will be confirmed after our team visits your premises.
+          Pricing will be confirmed after our team visits your premises.
         </p>
       </div>
     </div>` : ''}
@@ -1353,7 +1642,7 @@ function renderDetailsStep() {
         <button class="qty-btn" id="qtyMinus"><i class="fa-solid fa-minus"></i></button>
         <span class="qty-val" id="qtyVal">${_quantity}</span>
         <button class="qty-btn" id="qtyPlus"><i class="fa-solid fa-plus"></i></button>
-        <span class="qty-total">Total: ₹${svc.price * _quantity}</span>
+        <span class="qty-total">Total: ₹${inr(svc.price * _quantity)}</span>
       </div>
     </div>` : ''}
 
@@ -1553,14 +1842,15 @@ function showBookingConfirmed(orderId, { saved, isGuest, channel }) {
       ${channel === 'call' ? `
         <div class="booked-note">
           <i class="fa-solid fa-phone-volume"></i>
-          Please quote <strong>${orderId}</strong> when you speak to us. You can also
+          Please mention <strong>${orderId}</strong> when you speak to us. You can also
           send the details on WhatsApp so we have everything in writing.
         </div>` : ''}
 
       ${isGuest ? `
         <div class="booked-note">
           <i class="fa-solid fa-circle-info"></i>
-          Create an account with this mobile number to track all your orders in one place.
+          Keep this order ID handy — it's how we find your booking. Tip: log in
+          before your next booking to track every order in My Bookings.
         </div>` : ''}
 
       <div class="booked-actions">
@@ -1591,10 +1881,7 @@ function showBookingConfirmed(orderId, { saved, isGuest, channel }) {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   });
 
-  body.querySelector('#bookedClose')?.addEventListener('click', () => {
-    modal.classList.remove('modal-open');
-    document.body.style.overflow = '';
-  });
+  body.querySelector('#bookedClose')?.addEventListener('click', closeBooking);
 }
 
 /**
@@ -1692,18 +1979,18 @@ function renderSummaryStep() {
       ${_quantity > 1 ? `<div class="confirm-row"><span>Qty</span><strong>${_quantity}</strong></div>` : ''}
       ${svc.isFixed
         ? `<div class="confirm-row"><span>Price</span>
-             <strong>₹${total}${svc.mrp ? ` <span class="save-badge">Save ₹${svc.mrp - svc.price}</span>` : ''}</strong>
+             <strong>₹${inr(total)}${svc.mrp ? ` <span class="save-badge">Save ₹${inr((svc.mrp - svc.price) * _quantity)}</span>` : ''}</strong>
            </div>`
-        : `<div class="confirm-row"><span>Pricing</span><strong>Custom Quote</strong></div>`}
-      <div class="confirm-row"><span>Address</span><strong>${addressOneLine() || '-'}</strong></div>
+        : `<div class="confirm-row"><span>Pricing</span><strong>Custom price</strong></div>`}
+      <div class="confirm-row"><span>Address</span><strong>${escHtml(addressOneLine()) || '-'}</strong></div>
       ${addr().lat != null
         ? `<div class="confirm-row"><span>Location</span><strong class="geo-ok"><i class="fa-solid fa-location-dot"></i> GPS pinned</strong></div>`
         : ''}
-      ${window._bookingNotes ? `<div class="confirm-row"><span>Notes</span><strong>${window._bookingNotes}</strong></div>` : ''}
+      ${window._bookingNotes ? `<div class="confirm-row"><span>Notes</span><strong>${escHtml(window._bookingNotes)}</strong></div>` : ''}
       <div class="confirm-row"><span>Date</span><strong>${prettyDate(contact().date) || '-'}</strong></div>
-      <div class="confirm-row"><span>Name</span><strong>${contact().name || '-'}</strong></div>
-      ${contact().email ? `<div class="confirm-row"><span>Email</span><strong>${contact().email}</strong></div>` : ''}
-      <div class="confirm-row"><span>Mobile</span><strong>+91 ${contact().phone || '-'}${contact().altPhone ? ` · +91 ${contact().altPhone}` : ''}</strong></div>
+      <div class="confirm-row"><span>Name</span><strong>${escHtml(contact().name) || '-'}</strong></div>
+      ${contact().email ? `<div class="confirm-row"><span>Email</span><strong>${escHtml(contact().email)}</strong></div>` : ''}
+      <div class="confirm-row"><span>Mobile</span><strong>+91 ${escHtml(contact().phone) || '-'}${contact().altPhone ? ` · +91 ${escHtml(contact().altPhone)}` : ''}</strong></div>
     </div>
 
     ${svc.isFixed
@@ -1711,7 +1998,7 @@ function renderSummaryStep() {
            <small><i class="fa-solid fa-hand-holding-heart"></i> Pay after service — cash or UPI</small>
          </div>`
       : `<div class="confirm-total quote">
-           <div class="quote-note"><i class="fa-solid fa-comment-dots"></i> We'll share a custom quote after reviewing your requirement</div>
+           <div class="quote-note"><i class="fa-solid fa-comment-dots"></i> We'll confirm the final price after reviewing your requirement</div>
          </div>`}
 
     <p class="cta-heading">How would you like to confirm?</p>
@@ -1758,16 +2045,55 @@ function attachSummaryEvents(body) {
 
 // ─── DOM wiring ───────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Service cards / "Book Now" buttons
+  // Service cards / "Book Service" buttons. data-book="" opens every category.
   document.querySelectorAll('[data-book]').forEach(el => {
     el.addEventListener('click', (e) => {
       e.preventDefault();
       openBooking(el.dataset.book);
     });
+    // Service cards are role="button": Enter / Space must work like a click
+    if (el.getAttribute('role') === 'button') {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openBooking(el.dataset.book); }
+      });
+    }
   });
+
+  // "Search" buttons open the sheet with the search box focused
+  document.querySelectorAll('[data-book-search]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      openBooking('', { focusSearch: true });
+    });
+  });
+
+  // Other modules (the bottom tab bar) request the sheet with an event, so
+  // they don't have to import this file or know its internals.
+  document.addEventListener('mnu:book', (e) => {
+    openBooking(e.detail?.id || '', { focusSearch: !!e.detail?.search });
+  });
+
+  paintFromPrices();
 
   const modal = document.getElementById('bookingModal');
   if (!modal) return;
+
+  // Deep links from other pages and the app shortcut:
+  //   /?book=root   /?book=kitchen   /?book=root&search=1
+  // The parameter is removed afterwards so a refresh doesn't reopen the sheet.
+  const params = new URLSearchParams(location.search);
+  if (params.has('book')) {
+    const want = params.get('book');
+    openBooking(want === 'root' ? '' : want, { focusSearch: params.get('search') === '1' });
+    params.delete('book');
+    params.delete('search');
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : '') + location.hash);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('modal-open')) closeBooking();
+  });
 
   // Refreshes the embedded map without re-rendering the whole step
   // (re-rendering would steal focus from the field being typed in).
@@ -1919,14 +2245,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Close modal
-  modal.querySelector('[data-close-modal]')?.addEventListener('click', () => {
-    modal.classList.remove('modal-open');
-    document.body.style.overflow = '';
-  });
+  modal.querySelector('[data-close-modal]')?.addEventListener('click', closeBooking);
   modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.remove('modal-open');
-      document.body.style.overflow = '';
-    }
+    if (e.target === modal) closeBooking();
   });
 });

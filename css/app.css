@@ -1,0 +1,419 @@
+/* ==========================================================================
+   MyNeedUrban — app.css
+   App layer on top of style.css. Loaded last so it can refine without edits.
+     1. Service discovery   hero search, priced service cards, how it works
+     2. Booking sheet       search, category tiles, back crumb
+     3. Phone app shell     (<= 768px) compact header, bottom tab bar, Menu
+                            sheet, full-screen booking sheet, tighter sections
+   ========================================================================== */
+
+/* The `hidden` attribute must beat component display rules (flex/grid). */
+[hidden] { display: none !important; }
+
+/* ── 1. Discovery ─────────────────────────────────────────────────────── */
+
+/* Hero search: a button that opens the booking sheet with search focused */
+.hero-search {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; max-width: 520px; margin: 0 0 18px;
+  padding: 8px 8px 8px 18px; border: 0; border-radius: 999px;
+  background: #fff; color: var(--muted);
+  font: inherit; text-align: left; cursor: pointer;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .28);
+  transition: transform .2s, box-shadow .2s;
+}
+.hero-search:hover { transform: translateY(-1px); box-shadow: 0 18px 40px rgba(0, 0, 0, .34); }
+.hero-search:focus-visible { outline: 3px solid var(--blue-400); outline-offset: 3px; }
+.hero-search > i { color: var(--blue-600); font-size: 1rem; }
+.hs-text {
+  flex: 1; min-width: 0; font-size: .95rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.hs-go {
+  flex: 0 0 auto; padding: 10px 18px; border-radius: 999px;
+  background: var(--grad-blue); color: #fff; font-weight: 700; font-size: .85rem;
+}
+
+/* Phone-only header icons (WhatsApp + account) */
+.hdr-icon { display: none; }
+
+/* Service cards: stack content so every "Book Now" lines up at the bottom */
+.service-card { display: flex; flex-direction: column; align-items: flex-start; }
+.service-card .svc-book-btn { margin-top: auto; padding-top: 12px; }
+.service-card:focus-visible { outline: 3px solid var(--blue-400); outline-offset: 3px; }
+.svc-short { display: none; }
+.svc-from {
+  display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px;
+  margin-top: 10px; padding: 5px 12px; border-radius: 999px;
+  background: var(--orange-100); color: var(--orange-600);
+  font-size: .82rem; font-weight: 600; line-height: 1.35;
+}
+.svc-from strong { font-weight: 800; }
+.svc-from.is-quote { background: var(--blue-100); color: var(--blue-600); }
+.svc-from:empty { display: none; }
+.services-more { display: flex; justify-content: center; margin-top: 28px; }
+
+/* How it works */
+.how-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: 18px; grid-template-columns: repeat(4, 1fr);
+}
+.how-step {
+  position: relative; background: #fff;
+  border: 1px solid var(--line); border-radius: var(--radius-md);
+  padding: 26px 20px 22px;
+}
+.how-num {
+  position: absolute; top: 14px; right: 18px;
+  font-family: 'DM Serif Display', serif; font-size: 2.4rem; line-height: 1;
+  color: var(--blue-100);
+}
+.how-step > i {
+  width: 48px; height: 48px; border-radius: 14px; margin-bottom: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--grad-blue); color: #fff; font-size: 1.15rem;
+}
+.how-step h4 {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800;
+  font-size: 1.02rem; margin: 0 0 6px;
+}
+.how-step p { color: var(--muted); font-size: .9rem; margin: 0; }
+.how-cta { display: flex; justify-content: center; margin-top: 30px; }
+@media (max-width: 1024px) { .how-steps { grid-template-columns: repeat(2, 1fr); } }
+
+.contact-book { margin-top: 16px; }
+
+/* Login: forgot password + success message */
+.auth-forgot {
+  display: inline-block; margin: -4px 0 6px; padding: 4px 0;
+  background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: .84rem; font-weight: 700; color: var(--blue-600);
+}
+.auth-forgot:hover { text-decoration: underline; }
+.auth-error.is-ok { color: #15803d; }
+
+/* ── 2. Booking sheet ─────────────────────────────────────────────────── */
+
+.svc-search { position: relative; display: flex; align-items: center; margin-bottom: 14px; }
+.svc-search > i { position: absolute; left: 16px; color: var(--muted); pointer-events: none; }
+.svc-search input {
+  width: 100%; padding: 14px 46px; border: 1.5px solid var(--line); border-radius: 14px;
+  background: var(--surface); color: var(--ink-900);
+  font: inherit; font-size: 1rem;
+  -webkit-appearance: none; appearance: none;
+}
+.svc-search input:focus {
+  outline: none; border-color: var(--blue-500); background: #fff;
+  box-shadow: 0 0 0 4px rgba(30, 144, 255, .14);
+}
+.svc-search input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.svc-search-clear {
+  position: absolute; right: 8px; width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 50%; background: var(--line); color: var(--ink-700); cursor: pointer;
+}
+
+.svc-results { display: flex; flex-direction: column; gap: 8px; }
+.sr-item {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px;
+  background: #fff; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.sr-item:hover, .sr-item:focus-visible { border-color: var(--blue-400); box-shadow: var(--shadow-sm); outline: none; }
+.sr-icon {
+  flex: 0 0 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--blue-100); color: var(--blue-600);
+}
+.sr-text { flex: 1; min-width: 0; }
+.sr-text strong { display: block; font-size: .92rem; line-height: 1.3; }
+.sr-text small {
+  display: block; color: var(--muted); font-size: .76rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sr-price { flex: 0 0 auto; max-width: 42%; text-align: right; font-size: .8rem; font-weight: 800; color: var(--orange-600); }
+.sr-empty { text-align: center; padding: 28px 10px; color: var(--muted); }
+.sr-empty > i { display: block; margin-bottom: 8px; font-size: 1.6rem; color: #cbd5e1; }
+.sr-empty p { margin: 0 0 4px; color: var(--ink-900); font-weight: 700; }
+.sr-empty a, .root-help a { color: var(--blue-600); font-weight: 700; }
+
+.root-hint {
+  margin: 4px 0 10px; color: var(--muted);
+  font-size: .74rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase;
+}
+.root-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.root-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  min-height: 118px; padding: 14px; border: 1px solid var(--line); border-radius: 16px;
+  background: #fff; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+.root-tile:hover, .root-tile:focus-visible {
+  border-color: var(--blue-400); box-shadow: var(--shadow-sm); outline: none; transform: translateY(-1px);
+}
+.root-tile:active { transform: scale(.98); }
+.rt-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--blue-100); color: var(--blue-600); font-size: 1rem;
+}
+.rt-title { font-weight: 800; font-size: .86rem; line-height: 1.25; color: var(--ink-900); }
+.rt-from { margin-top: auto; font-size: .74rem; font-weight: 700; color: var(--orange-600); }
+.rt-from.is-quote { color: var(--blue-600); }
+.root-help { margin: 16px 0 4px; text-align: center; font-size: .86rem; color: var(--muted); }
+.root-help .fa-whatsapp { color: #25d366; }
+
+.cat-back {
+  display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px;
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px;
+  background: #fff; color: var(--ink-700); cursor: pointer;
+  font: inherit; font-size: .82rem; font-weight: 700;
+}
+.cat-back:hover { border-color: var(--blue-400); color: var(--blue-600); }
+button.catalog-item { width: 100%; color: inherit; font: inherit; text-align: left; }
+.catalog-item:focus-visible { outline: 3px solid var(--blue-400); outline-offset: 2px; }
+.ci-group-from { flex: 0 0 auto; font-size: .74rem; font-weight: 700; color: var(--orange-600); white-space: nowrap; }
+
+/* ── 3. Phone app shell ───────────────────────────────────────────────── */
+
+.tabbar { display: none; }
+
+/* Menu sheet (opened from the tab bar; built by js/app-shell.js) */
+.msheet {
+  position: fixed; inset: 0; z-index: 150;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(10, 17, 32, .5);
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.msheet.open { opacity: 1; pointer-events: auto; }
+.msheet-box {
+  width: 100%; max-width: 560px; max-height: 88vh; max-height: 88dvh; overflow-y: auto;
+  padding: 8px 18px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 24px 24px 0 0; background: #fff;
+  transform: translateY(100%); transition: transform .28s cubic-bezier(.2, .8, .2, 1);
+  overscroll-behavior: contain;
+}
+.msheet.open .msheet-box { transform: none; }
+.msheet-grip { width: 42px; height: 5px; margin: 6px auto 14px; border-radius: 999px; background: var(--line); }
+.ms-hello {
+  display: flex; align-items: center; gap: 12px;
+  padding: 2px 2px 14px; margin-bottom: 14px; border-bottom: 1px solid var(--line);
+}
+.ms-avatar {
+  flex: 0 0 46px; height: 46px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--grad-blue); color: #fff; font-weight: 800; font-size: 1.05rem;
+}
+.ms-hello strong { display: block; font-size: 1rem; line-height: 1.3; }
+.ms-hello small { color: var(--muted); font-size: .82rem; word-break: break-all; }
+.ms-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+.ms-tile {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  padding: 14px; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--surface); color: var(--ink-900); cursor: pointer;
+  font: inherit; font-weight: 700; font-size: .88rem; text-align: left; text-decoration: none;
+}
+.ms-tile i { font-size: 1.15rem; color: var(--blue-600); }
+.ms-tile .fa-whatsapp { color: #25d366; }
+.ms-tile.is-primary { background: var(--grad-orange); border-color: transparent; color: #fff; }
+.ms-tile.is-primary i { color: #fff; }
+.ms-list { display: flex; flex-direction: column; }
+.ms-link {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 14px 4px; border: 0; border-bottom: 1px solid var(--line);
+  background: none; color: var(--ink-900); cursor: pointer;
+  font: inherit; font-weight: 600; text-align: left; text-decoration: none;
+}
+.ms-link > i:first-child { width: 22px; text-align: center; color: var(--muted); }
+.ms-chev { margin-left: auto; color: #cbd5e1; font-size: .8rem; }
+.ms-link.is-danger { color: #dc2626; }
+.ms-link.is-danger > i:first-child { color: #dc2626; }
+.ms-foot { display: flex; justify-content: center; gap: 18px; padding-top: 16px; font-size: .82rem; color: var(--muted); }
+
+@media (max-width: 768px) {
+  /* Header: brand + WhatsApp + account. Book lives in the tab bar, and the
+     Menu sheet replaces the hamburger drawer. */
+  .header-collapse, .nav-toggle, .header-book { display: none !important; }
+  .header-inner { padding: 10px 0; }
+  .header-actions { gap: 8px; }
+  .hdr-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 42px; height: 42px; padding: 0; border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, .14); background: rgba(255, 255, 255, .06);
+    color: #e2e8f0; font: inherit; font-size: 1.05rem; cursor: pointer; text-decoration: none;
+  }
+  .hdr-wa { color: #25d366; font-size: 1.25rem; }
+  .hdr-acct.is-in { background: var(--grad-blue); border-color: transparent; color: #fff; font-weight: 800; font-size: .95rem; }
+
+  /* Bottom tab bar */
+  .tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(255, 255, 255, .97);
+    -webkit-backdrop-filter: saturate(180%) blur(14px); backdrop-filter: saturate(180%) blur(14px);
+    border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(13, 27, 42, .08);
+  }
+  .tab {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    height: 64px; padding: 0; border: 0; background: none; cursor: pointer;
+    color: #64748b; font: inherit; font-size: .68rem; font-weight: 700; text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab i { font-size: 1.15rem; }
+  .tab.is-active { color: var(--blue-600); }
+  .tab-fab {
+    width: 58px; height: 58px; margin-top: -30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--grad-orange); color: #fff; font-size: 1.35rem;
+    border: 4px solid #fff; box-shadow: 0 10px 24px rgba(249, 115, 22, .45);
+  }
+  .tab-book > span:last-child { color: var(--orange-600); }
+  .tab:active .tab-fab { transform: scale(.94); }
+  /* 64px bar + ~30px the Book button rises above it, so the last thing on a
+     page (e.g. a Cancel button) can always scroll clear of the button. */
+  body.has-tabbar { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  body.kb-open .tabbar { display: none; }
+
+  /* The header already carries WhatsApp; a floating one on top of a tab bar
+     is the clutter customers complained about. */
+  .wa-float { display: none; }
+  #mnuToast {
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    max-width: calc(100vw - 32px); white-space: normal; text-align: center;
+  }
+
+  /* 16px inputs stop iOS Safari zooming the page when a field is tapped */
+  .field-input, .field input, .field select, .field textarea,
+  .phone-input-wrap input, .svc-search input { font-size: 16px; }
+
+  /* Hero: search and booking above the fold */
+  .hero { padding: 24px 0 30px; }
+  .hero-grid { gap: 0; }
+  .hero-art { display: none; }
+  .hero h1 { font-size: 1.95rem; }
+  .hero-copy .eyebrow { font-size: .64rem; padding: 5px 10px; }
+  .hero-copy .lead { font-size: .95rem; margin: .45rem 0 1rem; }
+  .hero-search { margin-bottom: 14px; }
+  .hs-text { font-size: .9rem; }
+  .hs-go { padding: 9px 14px; }
+  .hero-ctas { flex-wrap: nowrap; margin-bottom: 16px; }
+  .hero-ctas .btn { flex: 1 1 0; padding: 13px 12px; font-size: .92rem; }
+  .lg-only { display: none; }
+  .trust-strip { gap: 8px 14px; font-size: .78rem; }
+
+  /* Sections */
+  .section { padding: 44px 0; }
+  .section-head { margin-bottom: 22px; }
+  .section-head h2 { font-size: 1.6rem; }
+  .section-head p { font-size: .92rem; }
+  .services-section { padding-top: 28px; }
+
+  /* Services: app-style tile grid */
+  .services-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .service-card {
+    align-items: center; gap: 6px; padding: 14px 6px 12px;
+    border-radius: 16px; text-align: center;
+  }
+  .service-card:hover { transform: none; box-shadow: var(--shadow-sm); }
+  .service-card:active { transform: scale(.97); }
+  .service-card h3, .service-card p, .service-card .svc-book-btn { display: none; }
+  .service-card .svc-icon { width: 46px; height: 46px; margin: 0; font-size: 1.15rem; }
+  .service-card .svc-short { display: block; font-weight: 800; font-size: .8rem; line-height: 1.2; color: var(--ink-900); }
+  .service-card .svc-from {
+    display: block; margin-top: auto; padding: 0; background: none;
+    font-size: .68rem; font-weight: 600; line-height: 1.3;
+  }
+  .services-more { margin-top: 18px; }
+
+  .how-steps { grid-template-columns: 1fr; gap: 10px; }
+  .how-step {
+    display: grid; grid-template-columns: 44px 1fr; column-gap: 14px; align-items: start;
+    padding: 16px;
+  }
+  .how-step > i { grid-row: span 2; width: 44px; height: 44px; margin: 0; font-size: 1rem; }
+  .how-step h4 { margin: 2px 0 2px; font-size: .96rem; }
+  .how-step p { font-size: .86rem; }
+  .how-num { top: 12px; right: 14px; font-size: 1.6rem; }
+  .how-cta { margin-top: 20px; }
+
+  /* Gallery: swipeable carousel */
+  #gallery { overflow: hidden; }
+  .work-grid {
+    display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+    margin: 0 -4vw; padding: 0 4vw 8px; scrollbar-width: none;
+  }
+  .work-grid::-webkit-scrollbar { display: none; }
+  .work-item { flex: 0 0 82%; scroll-snap-align: center; }
+  .work-item img { height: 230px; }
+
+  .why-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .why-card { padding: 16px 12px; }
+  .why-card i { width: 44px; height: 44px; font-size: 1rem; }
+  .why-card h4 { font-size: .9rem; }
+  .why-card p { font-size: .8rem; }
+  .team-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .team-avatar-placeholder { aspect-ratio: 16 / 11; font-size: 2rem; }
+  .team-card { padding-bottom: 14px; }
+  .reviews-section { padding-bottom: 44px; }
+  .rcard { width: 280px; }
+  .map-wrap iframe { height: 260px; }
+  .footer { margin-top: 0; padding: 40px 0 20px; }
+
+  /* Dialogs become bottom sheets... */
+  .mnu-modal { align-items: flex-end; padding: 0; }
+  .mnu-modal-box, .mnu-modal-box--wide {
+    width: 100%; max-width: none;
+    max-height: 94vh; max-height: 94dvh;
+    border-radius: 22px 22px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+  }
+  .mnu-modal.modal-open .mnu-modal-box { transform: none; }
+
+  /* ...and booking becomes a full-screen app screen: fixed title bar,
+     scrolling content, Continue button pinned to the bottom. */
+  #bookingModal .mnu-modal-box {
+    display: flex; flex-direction: column; overflow: hidden;
+    height: 100vh; height: 100dvh; max-height: none;
+    border-radius: 0; padding-bottom: 0;
+  }
+  #bookingModal .mnu-modal-head {
+    flex: 0 0 auto; text-align: left;
+    padding: calc(14px + env(safe-area-inset-top)) 64px 12px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  #bookingModal .booking-title { margin: 0; font-size: 1.08rem; }
+  #bookingModal .modal-close { top: calc(8px + env(safe-area-inset-top)); right: 10px; width: 42px; height: 42px; }
+  #bookingModal .booking-progress { flex: 0 0 auto; padding: 10px 16px; }
+  .booking-progress .bp-step span { display: none; }
+  .booking-progress .bp-step.active:not(.done) span { display: inline; }
+  #bookingModal .booking-body {
+    flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain; padding: 16px 16px 0;
+  }
+  #bookingModal .step-btns {
+    position: sticky; bottom: 0; z-index: 2;
+    margin: 18px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: #fff; border-top: 1px solid var(--line);
+    box-shadow: 0 -6px 18px rgba(13, 27, 42, .06);
+  }
+  #bookingModal .catalog-list,
+  #bookingModal .svc-results,
+  #bookingModal .root-help,
+  #bookingModal .booked-wrap { margin-bottom: calc(22px + env(safe-area-inset-bottom)); }
+  .root-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 360px) {
+  .services-grid { gap: 8px; }
+  .service-card .svc-short { font-size: .74rem; }
+  .hero h1 { font-size: 1.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-search, .root-tile, .msheet, .msheet-box, .mnu-modal-box { transition: none; }
+}
