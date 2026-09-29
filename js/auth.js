@@ -13,7 +13,10 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
   onAuthStateChanged, signOut,
   doc, setDoc, getDoc, serverTimestamp
-} from './firebase-config.js?v=20260924b';
+} from './firebase-config.js?v=20260929a';
+import {
+  waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown, passwordProblem
+} from './auth-guard.js?v=20260929a';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let currentUser = null;
@@ -123,13 +126,17 @@ function openModal(id) {
   document.getElementById(id)?.classList.add('modal-open');
   document.body.style.overflow = 'hidden';
 }
+// Closing a sheet also removes the reCAPTCHA widget, so its "protected by
+// reCAPTCHA" badge is never left sitting on top of the tab bar.
 function closeModal(id) {
   document.getElementById(id)?.classList.remove('modal-open');
   document.body.style.overflow = '';
+  clearRecaptcha();
 }
 function closeAllModals() {
   document.querySelectorAll('.mnu-modal').forEach(m => m.classList.remove('modal-open'));
   document.body.style.overflow = '';
+  clearRecaptcha();
 }
 
 function initAuthTabs() {
@@ -146,27 +153,33 @@ function initAuthTabs() {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+// One message for every "wrong email or password" case, so the page never
+// reveals whether an email has an account.
+const WRONG_LOGIN = 'Wrong email or password.';
 const AUTH_ERRORS = {
   'auth/invalid-phone-number': "That phone number doesn't look right.",
-  'auth/too-many-requests': 'Too many attempts. Please wait a few minutes and try again.',
+  'auth/too-many-requests': 'Too many attempts. For your safety, sign-in is paused for a while. Try again later, or reset your password.',
   'auth/quota-exceeded': 'OTP limit reached for now. Please try again later, or log in with email.',
   'auth/captcha-check-failed': 'Security check failed. Please refresh the page and try again.',
+  'auth/invalid-app-credential': 'Security check failed. Please refresh the page and try again.',
   'auth/invalid-verification-code': 'That OTP is incorrect. Please check and try again.',
   'auth/code-expired': 'That OTP has expired. Tap "Resend OTP".',
   'auth/missing-verification-code': 'Enter the 6-digit OTP.',
-  'auth/invalid-credential': 'Wrong email or password.',
-  'auth/invalid-login-credentials': 'Wrong email or password.',
-  'auth/wrong-password': 'Wrong email or password.',
-  'auth/user-not-found': 'Wrong email or password.',
+  'auth/invalid-credential': WRONG_LOGIN,
+  'auth/invalid-login-credentials': WRONG_LOGIN,
+  'auth/wrong-password': WRONG_LOGIN,
+  'auth/user-not-found': WRONG_LOGIN,
   'auth/invalid-email': 'Please enter a valid email address.',
   'auth/email-already-in-use': 'This email is already registered. Please log in instead.',
-  'auth/weak-password': 'Please choose a stronger password (at least 6 characters).',
+  'auth/weak-password': 'Please choose a stronger password: at least 8 characters, mixing letters and numbers.',
+  'auth/password-does-not-meet-requirements': 'Please choose a stronger password: at least 8 characters, mixing letters and numbers.',
   'auth/network-request-failed': 'No internet connection. Please check and try again.',
   'auth/user-disabled': 'This account has been disabled. Please contact us.',
   'auth/operation-not-allowed': "This login method isn't enabled yet. Please use another option.",
   'auth/billing-not-enabled': "Phone login isn't available right now. Please use email.",
 };
 const authMessage = (err, fallback) => AUTH_ERRORS[err?.code] || fallback;
+const WRONG_CODES = new Set(['auth/invalid-credential', 'auth/invalid-login-credentials', 'auth/wrong-password', 'auth/user-not-found']);
 
 /** Disables a button while a request runs, so one tap = one request. */
 function busy(btn, on, label) {
@@ -192,16 +205,51 @@ function afterSignIn() {
 }
 
 // ─── Phone OTP ────────────────────────────────────────────────────────────────
-function setupRecaptcha(btnId) {
-  try { window.recaptchaVerifier?.clear(); } catch (_) { /* already cleared */ }
-  window.recaptchaVerifier = new RecaptchaVerifier(auth, btnId, { size: 'invisible' });
+// Invisible reCAPTCHA can be drawn into an element only ONCE: a new verifier
+// on the same element fails with "reCAPTCHA has already been rendered in this
+// element" (checked with the real Firebase SDK). The old code drew it into the
+// Send button, so "Resend OTP" failed until the page was reloaded. Every OTP
+// request now gets a brand-new, empty element.
+let verifier = null;
+
+function setupRecaptcha() {
+  clearRecaptcha();
+  let host = document.getElementById('mnuRecaptcha');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'mnuRecaptcha';
+    document.body.appendChild(host);
+  }
+  const el = document.createElement('div');
+  host.appendChild(el);
+  verifier = new RecaptchaVerifier(auth, el, { size: 'invisible' });
+  return verifier;
 }
 
-async function sendOtp(phone, btnId, otpSection, errorEl) {
+/** Removes the reCAPTCHA widget (and its badge) once it isn't needed. */
+function clearRecaptcha() {
+  try { verifier?.clear(); } catch (_) { /* already cleared */ }
+  verifier = null;
+  const host = document.getElementById('mnuRecaptcha');
+  if (host) host.textContent = '';
+}
+
+/** Rejects with { code: 'mnu/wait' } when this browser must wait before another SMS. */
+async function sendOtp(phone, otpSection, errorEl) {
   setMsg(errorEl, '');
+  const locked = waitFor('otp');
+  if (locked) {
+    setMsg(errorEl, `Too many wrong OTPs. For safety, please try again in ${inWords(locked)}.`);
+    throw Object.assign(new Error('locked'), { code: 'mnu/wait', wait: locked });
+  }
+  const wait = smsWait();
+  if (wait) {
+    setMsg(errorEl, `Please wait ${inWords(wait)} before asking for another OTP.`);
+    throw Object.assign(new Error('wait'), { code: 'mnu/wait', wait });
+  }
   try {
-    setupRecaptcha(btnId);
-    confirmationResult = await signInWithPhoneNumber(auth, '+91' + phone, window.recaptchaVerifier);
+    confirmationResult = await signInWithPhoneNumber(auth, '+91' + phone, setupRecaptcha());
+    smsSent();
     otpSection.style.display = 'block';
   } catch (err) {
     console.warn('[auth] OTP send failed', err?.code || err);
@@ -210,15 +258,30 @@ async function sendOtp(phone, btnId, otpSection, errorEl) {
   }
 }
 
+/** After an OTP is sent (or refused), the Send button waits before it can resend. */
+function holdResend(btn) {
+  const wait = smsWait();
+  if (wait) countdown(btn, wait, 'Resend OTP', (s) => `Resend OTP in ${s}s`);
+}
+
 async function verifyOtp(otp, name, isSignup, errorEl, btn) {
   setMsg(errorEl, '');
   if (!confirmationResult) { setMsg(errorEl, 'Please request an OTP first.'); return; }
+  const wait = waitFor('otp');
+  if (wait) { setMsg(errorEl, `Too many wrong OTPs. Please try again in ${inWords(wait)}.`); return; }
   busy(btn, true, 'Verifying…');
   let user;
   try {
     user = (await confirmationResult.confirm(otp)).user;
+    succeeded('otp');
+    clearRecaptcha();
   } catch (err) {
     busy(btn, false);
+    if (err?.code === 'auth/invalid-verification-code' && failed('otp')) {
+      confirmationResult = null;        // that code is burnt; ask for a fresh one
+      setMsg(errorEl, `Too many wrong OTPs. Please request a new OTP in ${inWords(waitFor('otp'))}.`);
+      return;
+    }
     setMsg(errorEl, authMessage(err, 'That OTP is incorrect. Please try again.'));
     return;
   }
@@ -244,17 +307,24 @@ async function verifyOtp(otp, name, isSignup, errorEl, btn) {
 }
 
 // ─── Email ────────────────────────────────────────────────────────────────────
+const lockedMessage = (sec) =>
+  `Too many wrong attempts. For your safety, please wait ${inWords(sec)} — or tap "Forgot password?" to reset it.`;
+
 async function emailLogin(email, password, errorEl, btn) {
   setMsg(errorEl, '');
+  const wait = waitFor('password');
+  if (wait) { setMsg(errorEl, lockedMessage(wait)); return; }
   busy(btn, true, 'Logging in…');
   try {
     const { user } = await signInWithEmailAndPassword(auth, email, password);
+    succeeded('password');
     closeAllModals();
     showToast('Logged in successfully!');
     ensureProfile(user);
     afterSignIn();
   } catch (err) {
-    setMsg(errorEl, authMessage(err, 'Could not log in. Please try again.'));
+    const lock = WRONG_CODES.has(err?.code) ? failed('password') : 0;
+    setMsg(errorEl, lock ? lockedMessage(lock) : authMessage(err, 'Could not log in. Please try again.'));
   } finally {
     busy(btn, false);
   }
@@ -262,6 +332,8 @@ async function emailLogin(email, password, errorEl, btn) {
 
 async function emailSignup(name, email, password, errorEl, btn) {
   setMsg(errorEl, '');
+  const weak = passwordProblem(password, { email, name });
+  if (weak) { setMsg(errorEl, weak); return; }
   busy(btn, true, 'Creating account…');
   try {
     const { user } = await createUserWithEmailAndPassword(auth, email, password);
@@ -374,12 +446,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const phone = $('loginPhone').value.replace(/\D/g, '');
     if (!/^\d{10}$/.test(phone)) { setMsg(loginError, 'Enter a valid 10-digit phone number'); return; }
     busy(loginSendOtpBtn, true, 'Sending…');
-    sendOtp(phone, 'loginSendOtpBtn', loginOtpSection, loginError).then(() => {
+    sendOtp(phone, loginOtpSection, loginError).then(() => {
       busy(loginSendOtpBtn, false);
       loginSendOtpBtn.textContent = 'Resend OTP';
       loginVerifyBtn.style.display = 'block';
+      holdResend(loginSendOtpBtn);
       $('loginOtp')?.focus();
-    }).catch(() => busy(loginSendOtpBtn, false));
+    }).catch(() => { busy(loginSendOtpBtn, false); holdResend(loginSendOtpBtn); });
   });
 
   loginVerifyBtn?.addEventListener('click', () => {
@@ -411,12 +484,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!$('signupName').value.trim()) { setMsg(signupError, 'Enter your name'); return; }
     if (!/^\d{10}$/.test(phone)) { setMsg(signupError, 'Enter a valid 10-digit phone number'); return; }
     busy(signupSendOtpBtn, true, 'Sending…');
-    sendOtp(phone, 'signupSendOtpBtn', signupOtpSection, signupError).then(() => {
+    sendOtp(phone, signupOtpSection, signupError).then(() => {
       busy(signupSendOtpBtn, false);
       signupSendOtpBtn.textContent = 'Resend OTP';
       signupVerifyBtn.style.display = 'block';
+      holdResend(signupSendOtpBtn);
       $('signupOtp')?.focus();
-    }).catch(() => busy(signupSendOtpBtn, false));
+    }).catch(() => { busy(signupSendOtpBtn, false); holdResend(signupSendOtpBtn); });
   });
 
   signupVerifyBtn?.addEventListener('click', () => {
@@ -434,7 +508,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const pass = $('signupPassword').value;
     const signupError2 = $('signupError2');
     if (!name || !email || !pass) { setMsg(signupError2, 'Fill in all fields'); return; }
-    if (pass.length < 6) { setMsg(signupError2, 'Password must be at least 6 characters'); return; }
     emailSignup(name, email, pass, signupError2, signupEmailBtn);
   });
 
@@ -444,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (params.get('login') === '1' && $('authModal')) {
     const sub = $('authModalSub');
     if (sub && params.get('next') === 'account') sub.textContent = 'Log in to see your bookings';
-    if (sub && params.get('next') === 'admin') sub.textContent = 'Log in with your admin account';
+    if (sub && params.get('next') === 'admin') sub.textContent = 'Staff: log in with your phone number (OTP)';
     params.delete('login');
     params.delete('next');
     const qs = params.toString();

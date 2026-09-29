@@ -2,9 +2,13 @@
    MyNeedUrban — admin.js
    Live Orders dashboard for staff.
 
-   - Sign in here (email) or on the main site (phone OTP). Access needs
-     users/{uid}.role == 'admin'. That check only decides what this page
-     shows; the real protection is the Firestore security rules.
+   - Staff sign in with their phone number (OTP). Access needs
+     users/{uid}.role == 'admin' AND a phone sign-in, the same two checks
+     the Firestore security rules enforce. The rules are the real lock; this
+     page only explains what's needed. A password can never open this page's
+     data, so guessing or leaking one is not enough to see customers.
+   - Wrong codes and repeated OTP requests are slowed down (auth-guard.js),
+     on top of Firebase's own limits.
    - Live order stream, bounded to the newest 300 ("Load older" adds more).
    - Search, status + service-date filters, clickable stats, CSV export.
    - One tap to Call, WhatsApp (message pre-written for the order's status)
@@ -15,9 +19,22 @@
    =============================== */
 import {
   auth, db, VAPID_KEY,
-  onAuthStateChanged, signInWithEmailAndPassword, sendPasswordResetEmail, signOut,
-  collection, query, orderBy, limit, onSnapshot, doc, getDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20260924b';
+  onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut,
+  collection, query, orderBy, limit, onSnapshot, doc, getDoc, setDoc, updateDoc, serverTimestamp,
+} from './firebase-config.js?v=20260929a';
+import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20260929a';
+
+// Refuse to run inside another website's frame (clickjacking: a hidden
+// frame tricking staff into tapping "Cancel order"). Same-site frames are fine.
+if (window.top !== window.self) {
+  let sameSite = false;
+  try { sameSite = window.top.location.origin === location.origin; } catch (_) { /* other site */ }
+  if (!sameSite) {
+    document.documentElement.style.display = 'none';
+    try { window.top.location.replace(location.href); } catch (_) { /* sandboxed frame */ }
+    throw new Error('Live Orders cannot be shown inside another website.');
+  }
+}
 
 const PAGE_SIZE = 300;
 const $ = (id) => document.getElementById(id);
@@ -100,8 +117,19 @@ const fmtDateTime = (ts) => (millis(ts)
 const digits = (v) => String(v || '').replace(/\D/g, '').slice(-10);
 const fmt10 = (d) => `${d.slice(0, 5)} ${d.slice(5)}`;
 
+/** True only for real Google Maps links (not look-alikes such as maps.google.com.evil.site). */
+function isGoogleMaps(link) {
+  try {
+    const u = new URL(String(link));
+    if (u.protocol !== 'https:') return false;
+    if (u.hostname === 'maps.google.com') return true;
+    return (u.hostname === 'www.google.com' || u.hostname === 'google.com') && u.pathname.startsWith('/maps');
+  } catch (_) { return false; }
+}
+const EMAIL_OK = /^[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,24}$/;
+
 function mapsUrl(b) {
-  if (/^https:\/\/(www\.)?google\.com\/maps|^https:\/\/maps\.google\.com/i.test(String(b.mapsLink || ''))) return b.mapsLink;
+  if (isGoogleMaps(b.mapsLink)) return b.mapsLink;
   if (b.geo && Number.isFinite(+b.geo.lat) && Number.isFinite(+b.geo.lng)) {
     return `https://www.google.com/maps/search/?api=1&query=${+b.geo.lat},${+b.geo.lng}`;
   }
@@ -143,15 +171,47 @@ window.addEventListener('online', () => { if (unsub) setLive('wait', 'Reconnecti
 
 // ─── Gate: sign-in / access ──────────────────────────────────────────────────
 const AUTH_ERR = {
-  'auth/invalid-credential': 'Wrong email or password.',
-  'auth/invalid-login-credentials': 'Wrong email or password.',
-  'auth/wrong-password': 'Wrong email or password.',
-  'auth/user-not-found': 'Wrong email or password.',
-  'auth/invalid-email': 'Please enter a valid email address.',
-  'auth/too-many-requests': 'Too many attempts. Wait a few minutes or reset your password.',
+  'auth/invalid-phone-number': "That mobile number doesn't look right.",
+  'auth/invalid-verification-code': 'That code is incorrect. Check the SMS and try again.',
+  'auth/code-expired': 'That code has expired. Tap "Send a new code".',
+  'auth/missing-verification-code': 'Enter the 6-digit code from the SMS.',
+  'auth/too-many-requests': 'Too many attempts from this device. For safety, please wait a while and try again.',
+  'auth/quota-exceeded': 'SMS limit reached for now. Please try again later.',
+  'auth/captcha-check-failed': 'Security check failed. Refresh the page and try again.',
+  'auth/invalid-app-credential': 'Security check failed. Refresh the page and try again.',
+  'auth/operation-not-allowed': 'Phone sign-in is not switched on for India yet. The owner can allow it in Firebase → Authentication → Settings → SMS region policy.',
   'auth/network-request-failed': 'No internet connection.',
   'auth/user-disabled': 'This account has been disabled.',
 };
+
+let verifier = null;       // invisible reCAPTCHA for the OTP request
+let confirmation = null;   // waiting for the 6-digit code
+
+// Invisible reCAPTCHA can be drawn into an element only once (a second
+// verifier on the same element fails: "reCAPTCHA has already been rendered in
+// this element"), so each code request gets a fresh element inside #siRecaptcha.
+function resetVerifier() {
+  try { verifier?.clear(); } catch (_) { /* already gone */ }
+  verifier = null;
+  const box = document.getElementById('siRecaptcha');
+  if (box) box.textContent = '';
+}
+
+function newVerifier() {
+  resetVerifier();
+  const box = document.createElement('div');
+  $('siRecaptcha').appendChild(box);
+  verifier = new RecaptchaVerifier(auth, box, { size: 'invisible' });
+  return verifier;
+}
+
+/** "+91 98765 43210" / "9876543210" / "09876543210" → "9876543210" ('' if not an Indian mobile). */
+function mobile10(v) {
+  let d = String(v || '').replace(/\D/g, '');
+  if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+  if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+  return /^[6-9]\d{9}$/.test(d) ? d : '';
+}
 
 function showGate(html) {
   $('gate').innerHTML = html;
@@ -164,58 +224,153 @@ function gateLoading(msg) {
   showGate(`<div class="g-card"><div class="spinner" aria-hidden="true"></div><p>${esc(msg)}</p></div>`);
 }
 
-function gateSignIn() {
+function gateSignIn(note = '') {
+  confirmation = null;
+  resetVerifier();
   showGate(`
     <form class="g-card g-form" id="signInForm" novalidate>
       <img src="../assets/favicon/MyNeedUrban_favicon_v3.png" alt="" width="56" height="56" class="g-logo" />
       <h1>Staff sign-in</h1>
-      <p>Log in with your admin account to see live orders.</p>
-      <label><span>Email</span><input id="siEmail" type="email" autocomplete="username" inputmode="email" /></label>
-      <label><span>Password</span><input id="siPass" type="password" autocomplete="current-password" /></label>
-      <p class="g-msg" id="siMsg" role="alert"></p>
-      <button class="a-btn a-primary" id="siBtn" type="submit">Log in</button>
-      <button class="a-link" id="siForgot" type="button">Forgot password?</button>
-      <a class="a-link" href="../index.html?login=1&amp;next=admin">Log in with phone OTP instead</a>
+      <p>Enter your registered mobile number. We'll text you a 6-digit code.</p>
+      <label for="siPhone"><span>Mobile number</span></label>
+      <div class="g-phone">
+        <span class="g-cc" aria-hidden="true">+91</span>
+        <input id="siPhone" type="tel" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="98765 43210" />
+      </div>
+      <label id="siCodeRow" hidden><span>6-digit code from the SMS</span>
+        <input id="siCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" />
+      </label>
+      <p class="g-msg" id="siMsg" role="alert">${esc(note)}</p>
+      <button class="a-btn a-primary" id="siBtn" type="submit">Send code</button>
+      <button class="a-link" id="siResend" type="button" hidden>Send a new code</button>
+      <button class="a-link" id="siChange" type="button" hidden>Use a different number</button>
+      <p class="g-small g-note"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+        For your customers' safety, Live Orders only opens after a phone sign-in. A password can't open it.</p>
+      <div id="siRecaptcha"></div>
     </form>`);
+
   const msg = (t, ok = false) => { $('siMsg').textContent = t; $('siMsg').classList.toggle('ok', ok); };
-  $('signInForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = $('siEmail').value.trim();
-    const pass = $('siPass').value;
-    if (!email || !pass) return msg('Enter your email and password.');
+  let phone = '';
+
+  const toPhoneStep = () => {
+    confirmation = null;
+    $('siCodeRow').hidden = true;
+    $('siResend').hidden = true;
+    $('siChange').hidden = true;
+    $('siPhone').readOnly = false;
+    $('siBtn').textContent = 'Send code';
+  };
+
+  async function sendCode() {
+    const locked = waitFor('admin-otp');
+    if (locked) { msg(`Too many wrong codes. For safety, please try again in ${inWords(locked)}.`); return; }
+    const wait = smsWait();
+    if (wait) { msg(`Please wait ${inWords(wait)} before asking for another code.`); return; }
     const btn = $('siBtn');
-    btn.disabled = true; btn.textContent = 'Logging in…';
+    btn.disabled = true;
+    btn.textContent = 'Sending code…';
     try {
-      await signInWithEmailAndPassword(auth, email, pass);   // onAuthStateChanged takes over
+      confirmation = await signInWithPhoneNumber(auth, `+91${phone}`, newVerifier());
+      smsSent();
+      $('siCodeRow').hidden = false;
+      $('siPhone').readOnly = true;
+      $('siResend').hidden = false;
+      $('siChange').hidden = false;
+      btn.textContent = 'Verify and open Live Orders';
+      msg(`Code sent to +91 ${fmt10(phone)}.`, true);
+      countdown($('siResend'), smsWait(), 'Send a new code', (s) => `Send a new code in ${s}s`);
+      $('siCode').value = '';
+      $('siCode').focus();
     } catch (err) {
-      msg(AUTH_ERR[err?.code] || 'Could not log in. Please try again.');
-      btn.disabled = false; btn.textContent = 'Log in';
+      console.warn('[admin] OTP send failed', err?.code || err);
+      resetVerifier();
+      toPhoneStep();
+      msg(AUTH_ERR[err?.code] || 'Could not send the code. Please try again.');
+    } finally {
+      btn.disabled = false;
     }
-  });
-  $('siForgot').addEventListener('click', async () => {
-    const email = $('siEmail').value.trim();
-    if (!/^\S+@\S+\.\S+$/.test(email)) { msg('Type your email above first.'); $('siEmail').focus(); return; }
+  }
+
+  async function verifyCode() {
+    const code = $('siCode').value.replace(/\D/g, '');
+    if (!/^\d{6}$/.test(code)) { msg('Enter the 6-digit code from the SMS.'); $('siCode').focus(); return; }
+    const wait = waitFor('admin-otp');
+    if (wait) { msg(`Too many wrong codes. Please try again in ${inWords(wait)}.`); return; }
+    const btn = $('siBtn');
+    btn.disabled = true;
+    btn.textContent = 'Checking…';
     try {
-      await sendPasswordResetEmail(auth, email);
-      msg(`If ${email} has an account, a reset link is on its way.`, true);
+      await confirmation.confirm(code);            // onAuthStateChanged takes over
+      succeeded('admin-otp');
+      resetVerifier();
     } catch (err) {
-      msg(AUTH_ERR[err?.code] || 'Could not send the reset email.');
+      btn.disabled = false;
+      btn.textContent = 'Verify and open Live Orders';
+      if (err?.code === 'auth/invalid-verification-code' && failed('admin-otp')) {
+        toPhoneStep();                              // that code is burnt
+        msg(`Too many wrong codes. For safety, request a new code in ${inWords(waitFor('admin-otp'))}.`);
+        return;
+      }
+      msg(AUTH_ERR[err?.code] || 'Could not check the code. Please try again.');
     }
+  }
+
+  $('signInForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (confirmation) { verifyCode(); return; }
+    phone = mobile10($('siPhone').value);
+    if (!phone) { msg('Enter your 10-digit mobile number.'); $('siPhone').focus(); return; }
+    sendCode();
   });
-  $('siEmail').focus();
+  $('siResend').addEventListener('click', () => { if (phone) sendCode(); });
+  $('siChange').addEventListener('click', () => { toPhoneStep(); msg(''); $('siPhone').focus(); });
+  $('siPhone').focus();
 }
 
-function gateDenied(user) {
+/** Signed in, but this account isn't an admin yet: show exactly how to grant it. */
+async function gateDenied(user, hasProfile) {
+  // A first phone sign-in has no profile yet. Create the normal customer
+  // profile (the rules allow exactly this), so granting access later is a
+  // one-field change in the console.
+  if (!hasProfile) {
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        name: user.displayName || '', phone: user.phoneNumber || '', role: 'customer', createdAt: serverTimestamp(),
+      });
+    } catch (e) { console.warn('[admin] could not create profile', e?.code || e); }
+    if (auth.currentUser?.uid !== user.uid) return;
+  }
   showGate(`
     <div class="g-card">
       <div class="g-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
       <h1>No admin access</h1>
-      <p><strong>${esc(user.email || user.phoneNumber || 'This account')}</strong> isn't an admin account.</p>
-      <p class="g-small">The owner can grant access in the Firebase console: Firestore → <code>users</code> →
-        this account's document → set <code>role</code> to <code>admin</code>.</p>
-      <button class="a-btn a-ghost" id="denyOut" type="button">Sign in with another account</button>
+      <p><strong>${esc(user.phoneNumber || user.email || 'This account')}</strong> isn't an admin account.</p>
+      <ol class="g-steps">
+        <li>The owner opens <strong>Firebase console → Firestore Database → users</strong>.</li>
+        <li>Opens the document named <code>${esc(user.uid)}</code>.</li>
+        <li>Changes <code>role</code> from <code>customer</code> to <code>admin</code>, then this page opens after you sign in again.</li>
+      </ol>
+      <button class="a-btn a-ghost" id="copyUid" type="button"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy this account's ID</button>
+      <button class="a-link" id="denyOut" type="button">Sign in with another number</button>
     </div>`);
+  $('copyUid').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(user.uid); toast('Account ID copied'); }
+    catch (_) { toast(user.uid); }
+  });
   $('denyOut').addEventListener('click', () => signOut(auth));
+}
+
+/** An admin account, but signed in with a password (or Google): phone sign-in required. */
+function gatePhoneOnly() {
+  showGate(`
+    <div class="g-card">
+      <div class="g-icon"><i class="fa-solid fa-mobile-screen" aria-hidden="true"></i></div>
+      <h1>Phone sign-in needed</h1>
+      <p>For your customers' safety, Live Orders only opens after signing in with your phone number (OTP).
+         This session was signed in with a password.</p>
+      <button class="a-btn a-primary" id="usePhone" type="button">Sign in with phone</button>
+    </div>`);
+  $('usePhone').addEventListener('click', () => signOut(auth));   // → phone sign-in form
 }
 
 function gateError(err, retry) {
@@ -232,16 +387,21 @@ function gateError(err, retry) {
 async function checkAccess(user) {
   gateLoading('Checking admin access…');
   let role = null;
+  let hasProfile = false;
+  let provider = '';
   try {
-    const snap = await getDoc(doc(db, 'users', user.uid));
-    role = snap.exists() ? snap.data().role : null;
+    const [snap, token] = await Promise.all([getDoc(doc(db, 'users', user.uid)), user.getIdTokenResult()]);
+    hasProfile = snap.exists();
+    role = hasProfile ? snap.data().role : null;
+    provider = token?.signInProvider || '';
   } catch (err) {
     console.error('[admin] role check failed', err);
     if (auth.currentUser?.uid === user.uid) gateError(err, () => checkAccess(user));
     return;
   }
   if (auth.currentUser?.uid !== user.uid) return;
-  if (role !== 'admin') { setLive('off', 'No access'); gateDenied(user); return; }
+  if (role !== 'admin') { setLive('off', 'No access'); gateDenied(user, hasProfile); return; }
+  if (provider !== 'phone') { setLive('off', 'Phone sign-in needed'); gatePhoneOnly(); return; }
 
   me = user;
   $('gate').hidden = true;
@@ -610,7 +770,9 @@ function card(b) {
       <div><dt>Customer</dt><dd>${esc(b.customerName || '—')}</dd></div>
       <div><dt>Mobile</dt><dd>${phone ? `<a href="tel:+91${phone}">+91 ${fmt10(phone)}</a>` : '—'}${alt ? `<br /><a href="tel:+91${alt}">+91 ${fmt10(alt)}</a> <small>alt</small>` : ''}</dd></div>
       <div><dt>Service date</dt><dd class="${dayCls}">${d ? esc(dayLabel(d)) : 'Not set'}${b.timeSlot ? ` · ${esc(b.timeSlot)}` : ''}</dd></div>
-      ${b.customerEmail ? `<div><dt>Email</dt><dd><a href="mailto:${esc(b.customerEmail)}">${esc(b.customerEmail)}</a></dd></div>` : ''}
+      ${b.customerEmail ? `<div><dt>Email</dt><dd>${EMAIL_OK.test(b.customerEmail)
+        ? `<a href="mailto:${esc(b.customerEmail)}">${esc(b.customerEmail)}</a>`
+        : esc(b.customerEmail)}</dd></div>` : ''}
       ${b.address ? `<div class="wide"><dt>Address${b.geo ? ' <span class="gps">GPS pinned</span>' : ''}</dt><dd>${esc(String(b.address).replace(/\n+/g, ', '))}</dd></div>` : ''}
       ${b.venueType ? `<div><dt>Venue</dt><dd>${esc(b.venueType)}</dd></div>` : ''}
       ${b.notes ? `<div class="wide"><dt>Customer notes</dt><dd>${esc(b.notes)}</dd></div>` : ''}

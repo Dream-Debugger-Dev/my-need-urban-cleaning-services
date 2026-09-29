@@ -82,6 +82,7 @@ flutter run -d chrome
 3. **Separate repos** — Public website has zero sensitive code; app/backend are private
 4. **Firebase Security Rules** — Firestore rules enforce auth-only access
 5. **Environment variables** — All sensitive config loaded from environment, never hardcoded
+6. **Browser protections and admin access** — see `SECURITY.md` (CSP on every page, login limits, staff sign-in by phone OTP only)
 
 ## Team
 

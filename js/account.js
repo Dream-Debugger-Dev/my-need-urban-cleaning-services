@@ -11,7 +11,18 @@ import {
   auth, db, onAuthStateChanged, signOut,
   collection, query, where, limit, onSnapshot,
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20260924b';
+} from './firebase-config.js?v=20260929a';
+
+// Refuse to run inside another website's frame (clickjacking). Same-site frames are fine.
+if (window.top !== window.self) {
+  let sameSite = false;
+  try { sameSite = window.top.location.origin === location.origin; } catch (_) { /* other site */ }
+  if (!sameSite) {
+    document.documentElement.style.display = 'none';
+    try { window.top.location.replace(location.href); } catch (_) { /* sandboxed frame */ }
+    throw new Error('My Bookings cannot be shown inside another website.');
+  }
+}
 
 const WA = '919613304724';
 const $ = (id) => document.getElementById(id);
@@ -90,8 +101,16 @@ const initials = (s) => {
   return ((words[0]?.[0] || '') + (words.length > 1 && !String(s).includes('@') ? words[words.length - 1][0] : '')).toUpperCase() || '🙂';
 };
 
-/** Only Google Maps links are rendered as links. */
-const safeMaps = (u) => (/^https:\/\/(www\.)?google\.com\/maps|^https:\/\/maps\.google\.com/i.test(String(u || '')) ? u : '');
+/** Only real Google Maps links are rendered as links (not look-alikes such as maps.google.com.evil.site). */
+function safeMaps(link) {
+  try {
+    const u = new URL(String(link || ''));
+    if (u.protocol !== 'https:') return '';
+    const ok = u.hostname === 'maps.google.com'
+      || ((u.hostname === 'www.google.com' || u.hostname === 'google.com') && u.pathname.startsWith('/maps'));
+    return ok ? u.href : '';
+  } catch (_) { return ''; }
+}
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, (u) => {

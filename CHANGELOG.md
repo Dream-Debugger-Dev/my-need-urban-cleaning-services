@@ -6,6 +6,33 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.3.0] — 2026-09-29
+
+### Security
+- Staff sign-in on Live Orders is phone OTP only; the database rules refuse
+  admin access to password sessions
+- Wrong passwords / OTPs: growing wait after 5 tries; OTP texts limited to
+  3 per 15 minutes, 30 s apart (`js/auth-guard.js`)
+- New passwords: 8+ characters, letters mixed with numbers or symbols, not
+  common, not only digits, not the person's name or email
+- Content-Security-Policy and Referrer-Policy on every page; injected
+  scripts, inline handlers and `javascript:` links are blocked
+- Live Orders and My Bookings refuse to run inside another website's frame
+- Only real Google Maps links become Navigate buttons; only plain email
+  addresses become mailto links
+- Customer text is escaped everywhere it is shown again; booking fields are
+  capped at the lengths the database accepts, so long answers can't make a
+  booking fail
+- See `SECURITY.md`
+
+### Fixed
+- "Resend OTP" failed until the page was reloaded: reCAPTCHA was drawn into
+  the Send button, and Google's reCAPTCHA refuses to draw twice in the same
+  element. Each OTP request now gets a fresh element (login, sign-up and
+  staff sign-in)
+
+---
+
 ## [1.2.0] — 2026-05-13
 
 ### Changed

@@ -6,9 +6,9 @@
 // Every import carries the same ?v= as the HTML. A module imported under two
 // different URLs runs twice — that is how auth.js ended up with doubled login
 // handlers (two OTP SMS per tap). Keep all ?v= values identical on deploy.
-import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js?v=20260924b';
-import { showToast } from './auth.js?v=20260924b';
-import { makeOrderId } from './order-id.js?v=20260924b';
+import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js?v=20260929a';
+import { showToast } from './auth.js?v=20260929a';
+import { makeOrderId } from './order-id.js?v=20260929a';
 
 // ─── Service Catalog ──────────────────────────────────────────────────────────
 
@@ -1043,6 +1043,17 @@ async function saveBooking({ orderId, channel }) {
   const path = servicePath(svc.id) || [svc];
   const { name, phone, email } = c;
 
+  // Every text is capped at the length the database rules accept, so a very
+  // long answer can never make a real booking fail to save.
+  const cap = (v, max) => String(v ?? '').slice(0, max);
+  const parts = {};
+  for (const [k, v] of Object.entries(a)) parts[k] = typeof v === 'string' ? v.slice(0, 200) : v;
+  const hasGeo = a.lat != null && a.lng != null;
+  let maps = mapsLink() || null;
+  if (maps && maps.length > 600) {
+    maps = hasGeo ? `https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}` : null;
+  }
+
   return addDoc(collection(db, 'bookings'), {
     orderId,
     status: 'pending',
@@ -1051,18 +1062,18 @@ async function saveBooking({ orderId, channel }) {
 
     customerId:    user?.uid || null,
     isGuest:       !user,
-    customerName:     name  || '',
-    customerPhone:    phone || '',
-    customerAltPhone: c.altPhone || '',
-    customerEmail:    email || '',
+    customerName:     cap(name, 100),
+    customerPhone:    cap(phone, 20),
+    customerAltPhone: cap(c.altPhone, 20),
+    customerEmail:    cap(email, 200),
 
     scheduledDate: c.date || null,
 
     serviceId:   svc.id,
-    serviceName: svc.title,
-    servicePath: path.map(n => n.title).join(' > '),
-    enquiredVia: (_entryTitle && _entryTitle !== path[0]?.title) ? _entryTitle : null,
-    venueType:   svc.isCommercial ? (_selectedVenueType === 'other' ? _customVenueName || 'Other' : _selectedVenueType) : null,
+    serviceName: cap(svc.title, 200),
+    servicePath: cap(path.map(n => n.title).join(' > '), 400),
+    enquiredVia: (_entryTitle && _entryTitle !== path[0]?.title) ? cap(_entryTitle, 120) : null,
+    venueType:   svc.isCommercial ? cap(_selectedVenueType === 'other' ? _customVenueName || 'Other' : _selectedVenueType, 120) : null,
 
     pricingType: svc.isFixed ? 'fixed' : 'quote',
     priceUnit:   svc.priceUnit || null,
@@ -1070,12 +1081,12 @@ async function saveBooking({ orderId, channel }) {
     amount:      svc.isFixed ? getTotal() : 0,
     mrp:         svc.mrp || null,
 
-    address:      composeAddress(),
-    addressParts: { ...a },
-    geo:          (a.lat != null && a.lng != null) ? { lat: a.lat, lng: a.lng } : null,
-    mapsLink:     mapsLink() || null,
+    address:      cap(composeAddress(), 1000),
+    addressParts: parts,
+    geo:          hasGeo ? { lat: a.lat, lng: a.lng } : null,
+    mapsLink:     maps,
 
-    notes: window._bookingNotes || '',
+    notes: cap(window._bookingNotes, 2000),
 
     createdAt: serverTimestamp(),
   });
@@ -1620,14 +1631,14 @@ function renderDetailsStep() {
         <label class="step-label" for="venueOtherInput">Describe your venue <span class="req">*</span></label>
         <input class="field-input" id="venueOtherInput" type="text"
                placeholder="e.g. Co-working space, gym, daycare centre…"
-               value="${_customVenueName}" maxlength="80" />
+               value="${escHtml(_customVenueName)}" maxlength="80" />
       </div>
 
       <!-- Space description — always visible once a venue is picked -->
       <div id="venueDescWrap" style="display:${_selectedVenueType ? 'block' : 'none'}; margin-top:14px;">
         <label class="step-label" for="venueDesc">Describe your space <span class="opt">(optional)</span></label>
-        <textarea class="field-input" id="venueDesc" rows="3"
-          placeholder="${venueAsk(_selectedVenueType)}">${window._bookingNotes || ''}</textarea>
+        <textarea class="field-input" id="venueDesc" rows="3" maxlength="1500"
+          placeholder="${venueAsk(_selectedVenueType)}">${escHtml(window._bookingNotes || '')}</textarea>
         <p class="venue-note">
           <i class="fa-solid fa-circle-info"></i>
           Pricing will be confirmed after our team visits your premises.
@@ -1728,7 +1739,7 @@ function renderAddressStep() {
   const a = addr();
   const embed = mapsEmbed(a);
   const link  = mapsLink(a);
-  const esc = s => String(s || '').replace(/"/g, '&quot;');
+  const esc = escHtml;
 
   return `
     <div class="step-section">
@@ -1748,27 +1759,27 @@ function renderAddressStep() {
         <div class="addr-field">
           <label for="addrFlat">Flat / House No. <span class="req">*</span></label>
           <input class="field-input" id="addrFlat" data-addr="flat" value="${esc(a.flat)}"
-                 placeholder="e.g. 402" autocomplete="address-line1" />
+                 placeholder="e.g. 402" autocomplete="address-line1" maxlength="60" />
         </div>
         <div class="addr-field">
           <label for="addrBuilding">Building / Society</label>
           <input class="field-input" id="addrBuilding" data-addr="building" value="${esc(a.building)}"
-                 placeholder="e.g. Aparna Sarovar" autocomplete="address-line2" />
+                 placeholder="e.g. Aparna Sarovar" autocomplete="address-line2" maxlength="120" />
         </div>
         <div class="addr-field addr-wide">
           <label for="addrStreet">Street / Locality / Area <span class="req">*</span></label>
           <input class="field-input" id="addrStreet" data-addr="street" value="${esc(a.street)}"
-                 placeholder="e.g. Nallagandla, Serilingampally" autocomplete="address-level3" />
+                 placeholder="e.g. Nallagandla, Serilingampally" autocomplete="address-level3" maxlength="200" />
         </div>
         <div class="addr-field addr-wide">
           <label for="addrLandmark">Nearby Landmark</label>
           <input class="field-input" id="addrLandmark" data-addr="landmark" value="${esc(a.landmark)}"
-                 placeholder="e.g. opposite Reliance Fresh" />
+                 placeholder="e.g. opposite Reliance Fresh" maxlength="120" />
         </div>
         <div class="addr-field">
           <label for="addrCity">City <span class="req">*</span></label>
           <input class="field-input" id="addrCity" data-addr="city" value="${esc(a.city)}"
-                 placeholder="Hyderabad" autocomplete="address-level2" />
+                 placeholder="Hyderabad" autocomplete="address-level2" maxlength="60" />
         </div>
         <div class="addr-field">
           <label for="addrPincode">Pincode <span class="req">*</span></label>
@@ -1792,8 +1803,8 @@ function renderAddressStep() {
     </div>
     <div class="step-section">
       <label class="step-label">${_selectedService.isFixed ? 'Notes (optional)' : 'Describe your requirement'}</label>
-      <textarea class="field-input" id="bookingNotes" rows="3"
-        placeholder="${_selectedService.requirementHint || 'Any special instructions?'}">${window._bookingNotes || ''}</textarea>
+      <textarea class="field-input" id="bookingNotes" rows="3" maxlength="1500"
+        placeholder="${_selectedService.requirementHint || 'Any special instructions?'}">${escHtml(window._bookingNotes || '')}</textarea>
     </div>
     <div class="info-chip"><i class="fa-solid fa-location-dot"></i> We serve all of Hyderabad &amp; Telangana</div>
     <div class="step-btns">
@@ -1912,7 +1923,7 @@ function submitBooking({ channel }) {
 function renderScheduleStep() {
   prefillContactFromProfile();
   const c = contact();
-  const esc = s => String(s || '').replace(/"/g, '&quot;');
+  const esc = escHtml;
 
   const today = new Date();
   const maxDate = new Date(today);
@@ -1934,12 +1945,12 @@ function renderScheduleStep() {
         <div class="addr-field addr-wide">
           <label for="ctName">Full Name <span class="req">*</span></label>
           <input class="field-input" id="ctName" data-contact="name" value="${esc(c.name)}"
-                 placeholder="e.g. Ramesh Kumar" autocomplete="name" />
+                 placeholder="e.g. Ramesh Kumar" autocomplete="name" maxlength="100" />
         </div>
         <div class="addr-field addr-wide">
           <label for="ctEmail">Email <span class="opt">(optional)</span></label>
           <input class="field-input" id="ctEmail" data-contact="email" type="email" value="${esc(c.email)}"
-                 placeholder="you@email.com — for your booking confirmation" autocomplete="email" />
+                 placeholder="you@email.com — for your booking confirmation" autocomplete="email" maxlength="120" />
         </div>
         <div class="addr-field">
           <label for="ctPhone">Mobile Number <span class="req">*</span></label>

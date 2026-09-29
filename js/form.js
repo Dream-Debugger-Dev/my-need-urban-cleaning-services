@@ -6,8 +6,8 @@
    so call-backs get an order ID, show up on the admin page with Call and
    WhatsApp buttons, and pass the same Firestore validation rules.
    =============================== */
-import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js?v=20260924b';
-import { makeOrderId } from './order-id.js?v=20260924b';
+import { auth, db, collection, addDoc, serverTimestamp } from './firebase-config.js?v=20260929a';
+import { makeOrderId } from './order-id.js?v=20260929a';
 
 const form = document.getElementById('contactForm');
 const note = document.getElementById('formNote');
