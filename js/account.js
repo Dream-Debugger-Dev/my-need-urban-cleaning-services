@@ -11,7 +11,7 @@ import {
   auth, db, onAuthStateChanged, signOut,
   collection, query, where, limit, onSnapshot,
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20260929a';
+} from './firebase-config.js?v=20261006a';
 
 // Refuse to run inside another website's frame (clickjacking). Same-site frames are fine.
 if (window.top !== window.self) {

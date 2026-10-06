@@ -3,10 +3,10 @@
    Live Orders dashboard for staff.
 
    - Staff sign in with their phone number (OTP). Access needs
-     users/{uid}.role == 'admin' AND a phone sign-in, the same two checks
-     the Firestore security rules enforce. The rules are the real lock; this
-     page only explains what's needed. A password can never open this page's
-     data, so guessing or leaking one is not enough to see customers.
+     users/{uid}.role == 'admin', a phone sign-in, AND that phone number to
+     equal users/{uid}.adminPhone: the same checks the Firestore security
+     rules enforce. The rules are the real lock; this page only explains
+     what's needed. A password can never open this page's data.
    - Wrong codes and repeated OTP requests are slowed down (auth-guard.js),
      on top of Firebase's own limits.
    - Live order stream, bounded to the newest 300 ("Load older" adds more).
@@ -21,8 +21,8 @@ import {
   auth, db, VAPID_KEY,
   onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut,
   collection, query, orderBy, limit, onSnapshot, doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20260929a';
-import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20260929a';
+} from './firebase-config.js?v=20261006a';
+import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20261006a';
 
 // Refuse to run inside another website's frame (clickjacking: a hidden
 // frame tricking staff into tapping "Cancel order"). Same-site frames are fine.
@@ -327,11 +327,15 @@ function gateSignIn(note = '') {
   $('siPhone').focus();
 }
 
-/** Signed in, but this account isn't an admin yet: show exactly how to grant it. */
-async function gateDenied(user, hasProfile) {
+/**
+ * Signed in, but this account can't open Live Orders yet: show exactly how
+ * to grant it. Access needs role "admin" AND adminPhone = this session's
+ * verified number (the database rules check both).
+ */
+async function gateDenied(user, hasProfile, numberOnly = false) {
   // A first phone sign-in has no profile yet. Create the normal customer
   // profile (the rules allow exactly this), so granting access later is a
-  // one-field change in the console.
+  // two-field change in the console.
   if (!hasProfile) {
     try {
       await setDoc(doc(db, 'users', user.uid), {
@@ -340,15 +344,19 @@ async function gateDenied(user, hasProfile) {
     } catch (e) { console.warn('[admin] could not create profile', e?.code || e); }
     if (auth.currentUser?.uid !== user.uid) return;
   }
+  const phone = user.phoneNumber || '';
   showGate(`
     <div class="g-card">
       <div class="g-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
-      <h1>No admin access</h1>
-      <p><strong>${esc(user.phoneNumber || user.email || 'This account')}</strong> isn't an admin account.</p>
+      <h1>${numberOnly ? 'Number not registered' : 'No admin access'}</h1>
+      <p><strong>${esc(phone || user.email || 'This account')}</strong> ${numberOnly
+        ? "isn't the phone number registered for this admin account."
+        : "isn't an admin account."}</p>
       <ol class="g-steps">
         <li>The owner opens <strong>Firebase console → Firestore Database → users</strong>.</li>
         <li>Opens the document named <code>${esc(user.uid)}</code>.</li>
-        <li>Changes <code>role</code> from <code>customer</code> to <code>admin</code>, then this page opens after you sign in again.</li>
+        <li>Sets <code>role</code> to <code>admin</code> and adds a text field <code>adminPhone</code>
+          with the value <code>${esc(phone || '+91XXXXXXXXXX')}</code>. Then sign in again here.</li>
       </ol>
       <button class="a-btn a-ghost" id="copyUid" type="button"><i class="fa-regular fa-copy" aria-hidden="true"></i> Copy this account's ID</button>
       <button class="a-link" id="denyOut" type="button">Sign in with another number</button>
@@ -387,12 +395,14 @@ function gateError(err, retry) {
 async function checkAccess(user) {
   gateLoading('Checking admin access…');
   let role = null;
+  let adminPhone = '';
   let hasProfile = false;
   let provider = '';
   try {
     const [snap, token] = await Promise.all([getDoc(doc(db, 'users', user.uid)), user.getIdTokenResult()]);
     hasProfile = snap.exists();
     role = hasProfile ? snap.data().role : null;
+    adminPhone = hasProfile ? String(snap.data().adminPhone || '') : '';
     provider = token?.signInProvider || '';
   } catch (err) {
     console.error('[admin] role check failed', err);
@@ -402,6 +412,11 @@ async function checkAccess(user) {
   if (auth.currentUser?.uid !== user.uid) return;
   if (role !== 'admin') { setLive('off', 'No access'); gateDenied(user, hasProfile); return; }
   if (provider !== 'phone') { setLive('off', 'Phone sign-in needed'); gatePhoneOnly(); return; }
+  // Same check as the database rules: the session's verified number must be
+  // the one registered for this admin (stops an intruder who linked their own phone).
+  if (!adminPhone || adminPhone !== user.phoneNumber) {
+    setLive('off', 'Number not registered'); gateDenied(user, true, true); return;
+  }
 
   me = user;
   $('gate').hidden = true;

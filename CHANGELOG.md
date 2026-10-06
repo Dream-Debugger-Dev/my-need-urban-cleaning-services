@@ -6,6 +6,18 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.3.1] — 2026-10-06
+
+### Security
+- Live Orders also requires the signed-in phone number to be the one
+  registered for that admin (`adminPhone`), matching the new database rules.
+  An intruder who attaches their own phone to an admin account sees
+  "Number not registered" and no data
+- The "No admin access" screen shows the exact `role` and `adminPhone`
+  values for the owner to set
+
+---
+
 ## [1.3.0] — 2026-09-29
 
 ### Security

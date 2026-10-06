@@ -7,7 +7,7 @@
    with a 'mnu:book' event rather than importing it — importing booking.js
    from here would load a second copy and double every click handler.
    =============================== */
-import { auth, onAuthStateChanged, signOut } from './firebase-config.js?v=20260929a';
+import { auth, onAuthStateChanged, signOut } from './firebase-config.js?v=20261006a';
 
 const ROOT = new URL('../', import.meta.url);            // site root (this file is /js/app-shell.js)
 const at = (p) => new URL(p, ROOT).href;

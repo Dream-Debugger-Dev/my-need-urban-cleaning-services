@@ -16,8 +16,10 @@ site adds the browser-side layers:
 - **Login limits** (`js/auth-guard.js`): a growing wait after 5 wrong
   passwords or OTPs, at most 3 OTP texts per 15 minutes, and a check that new
   passwords aren't easy to guess. Firebase enforces its own limits on top.
-- **Staff sign-in is phone OTP only** (`js/admin.js`). The database rules
-  refuse admin access to password sessions, so the page never asks for one.
+- **Staff sign-in is phone OTP only** (`js/admin.js`), and the number must be
+  the one registered for that admin (`adminPhone`). The database rules refuse
+  admin access to password sessions and to unregistered numbers, so the page
+  never asks for a password.
 - **No clickjacking**: Live Orders and My Bookings hide themselves if another
   website puts them in a frame.
 - **Safe links**: only real Google Maps links become "Navigate" buttons, and
