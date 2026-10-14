@@ -6,6 +6,40 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.4.0] — 2026-10-14
+
+### Added
+- Navratri · Bathukamma · Dasara festival layer on the home page. It sits
+  under the hero as a card with: the nine Navratri nights lit one by one in
+  each night's colour (today's colour and goddess highlighted), today's
+  Bathukamma name, a countdown to Dasara (20 Oct), a "Book Home Deep
+  Cleaning" button, "Share wishes" (WhatsApp / share sheet), a downloadable
+  greeting card (1080×1350 JPEG, made in the visitor's browser), a marigold
+  toran over the hero, drifting petals, a slow rangoli mandala and a festive
+  line in the footer. Home Deep Cleaning gets a "Festive pick" badge (just a
+  diya on phones)
+- Self-expiring: on for 10–21 Oct 2026 (India time), then the page is normal
+  again with nothing to deploy. Preview any day with `?fest=2026-10-19`,
+  switch it off with `?fest=off`
+- Everything is drawn in code (canvas/SVG): no images, videos or new
+  third-party hosts, no inline scripts, and the Content-Security-Policy is
+  unchanged. Off-season only the two small loader scripts run (and exit at
+  once); the styles, art, petals and card are never downloaded
+- `js/festival-boot.js` runs in `<head>` and reserves the card's height before
+  the first paint, so the page does not jump when the card appears
+  (layout shift 0.226 → 0 on phones)
+
+### Good to know
+- Calendars differ by a day between regions. The dates are in `js/festival.js`
+  (`SEASON`, `DASARA`, `NAVRATRI`, Bathukamma list) and, for the three season
+  dates, repeated in `js/festival-boot.js`. Change both
+- Petals stop on slow phones, with Data Saver or "reduce motion", while the
+  greeting card is open, and when the hero is off-screen
+- To remove it for good, see the comment at the top of `js/festival.js`
+- Cache version moved to `20261014a`
+
+---
+
 ## [1.3.1] — 2026-10-06
 
 ### Security

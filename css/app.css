@@ -417,3 +417,44 @@ button.catalog-item { width: 100%; color: inherit; font: inherit; text-align: le
 @media (prefers-reduced-motion: reduce) {
   .hero-search, .root-tile, .msheet, .msheet-box, .mnu-modal-box { transition: none; }
 }
+
+/* ── Festival slot ─────────────────────────────────────────────────────────
+   Navratri · Bathukamma · Dasara 2026 (js/festival.js, css/festival.css).
+   Everything here is inert unless js/festival-boot.js has put .fest-on on
+   <html> (10-21 Oct 2026 only), so it is safe to leave in place. It lives in
+   this always-loaded file so the card's space is reserved BEFORE the first
+   paint: the card is built a moment later, and without a reserved slot it
+   would push the Services section down (layout shift).
+
+   --fest-reserve is the card's height for each width, measured in a browser
+   across all festival days; the real card has the same min-height. */
+.fest-slot { display: none; }
+.fest-on .fest-slot {
+  --fest-lift: 44px;                 /* how far the card rides up into the hero */
+  --fest-reserve: 336px;
+  display: block; position: relative; z-index: 2;
+  margin-top: calc(var(--fest-lift) * -1); padding-bottom: 28px;
+  background: linear-gradient(180deg, transparent 0, transparent var(--fest-lift), #f4f8ff var(--fest-lift));
+}
+/* A quiet dark card holds the place until the real one arrives */
+.fest-on .fest-slot:not(.is-ready)::before {
+  content: ""; display: block; box-sizing: border-box;      /* same sizing as the real card (min-height includes its border) */
+  width: min(1180px, 92%); height: var(--fest-reserve); margin: 0 auto;
+  border-radius: 28px; border: 1px solid rgba(255, 200, 60, .3);
+  background: linear-gradient(135deg, #0d1b2a 0%, #14233d 58%, #1d1a3c 100%);
+}
+.fest-on.fest-after .fest-slot { --fest-reserve: 294px; }
+@media (max-width: 1279px) {
+  .fest-on .fest-slot { --fest-reserve: 466px; }
+  .fest-on.fest-after .fest-slot { --fest-reserve: 326px; }
+}
+@media (max-width: 1000px) {
+  .fest-on .fest-slot { --fest-reserve: 494px; }
+}
+@media (max-width: 768px) {
+  .fest-on .fest-slot { --fest-lift: 18px; --fest-reserve: 474px; padding-bottom: 6px; }
+  .fest-on.fest-after .fest-slot { --fest-reserve: 222px; }
+  .fest-on .fest-slot:not(.is-ready)::before { border-radius: 22px; }
+  /* room under the toran */
+  .fest-on .hero { padding-top: 48px; }
+}

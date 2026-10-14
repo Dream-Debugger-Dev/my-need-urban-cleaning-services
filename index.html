@@ -5,6 +5,10 @@
   <!-- Security: only scripts from this site, Firebase (gstatic) and Google reCAPTCHA may run. Injected script tags and inline event handlers are blocked. See SECURITY.md. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://www.google.com https://www.gstatic.com; frame-src https://www.google.com https://recaptcha.google.com https://myneedurban-ec1c9.firebaseapp.com; worker-src 'self'; manifest-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <!-- Festival season marker (Navratri · Bathukamma · Dasara 2026). Runs before
+       first paint so the festive card's space is held open from the start; it
+       does nothing outside 10-21 Oct 2026. Remove with js/festival.js. -->
+  <script src="js/festival-boot.js?v=20261014a"></script>
   <!-- viewport-fit=cover lets the bottom tab bar sit under the iPhone home
        indicator; env(safe-area-inset-*) in css/app.css keeps content clear of it. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -35,11 +39,11 @@
        CSS/JS — here, in pages/*.html, in every `import ... from './x.js?v='`
        inside js/, and VERSION in sw.js. All must be the SAME value: a module
        imported under two URLs runs twice. The QA check enforces this. -->
-  <link rel="stylesheet" href="css/style.css?v=20261006a" />
-  <link rel="stylesheet" href="css/animations.css?v=20261006a" />
+  <link rel="stylesheet" href="css/style.css?v=20261014a" />
+  <link rel="stylesheet" href="css/animations.css?v=20261014a" />
   <!-- App layer: bottom tab bar, menu sheet, discovery grid, mobile booking
        sheet. Loaded last so it can refine style.css without editing it. -->
-  <link rel="stylesheet" href="css/app.css?v=20261006a" />
+  <link rel="stylesheet" href="css/app.css?v=20261014a" />
 
   <script type="application/ld+json">
   {
@@ -173,6 +177,10 @@
       </div>
     </div>
   </section>
+
+  <!-- Where the seasonal card goes (js/festival.js). Empty and invisible except
+       on festival days, when css/app.css reserves its height up front. -->
+  <div class="fest-slot" id="festSlot"></div>
 
   <!-- SERVICES — straight after the hero: customers told us the services were
        hard to find. Each card opens the booking sheet at that category.
@@ -763,14 +771,20 @@
     <i class="fa-brands fa-whatsapp"></i>
   </a>
 
-  <script src="js/main.js?v=20261006a"></script>
-  <script src="js/pwa.js?v=20261006a" defer></script>
-  <script src="js/slider.js?v=20261006a"></script>
-  <script type="module" src="js/form.js?v=20261006a"></script>
-  <script type="module" src="js/auth.js?v=20261006a"></script>
-  <script type="module" src="js/booking.js?v=20261006a"></script>
+  <script src="js/main.js?v=20261014a"></script>
+  <script src="js/pwa.js?v=20261014a" defer></script>
+  <script src="js/slider.js?v=20261014a"></script>
+  <script type="module" src="js/form.js?v=20261014a"></script>
+  <script type="module" src="js/auth.js?v=20261014a"></script>
+  <script type="module" src="js/booking.js?v=20261014a"></script>
   <!-- Bottom tab bar, Menu sheet and phone header icons (<= 768px) -->
-  <script type="module" src="js/app-shell.js?v=20261006a"></script>
+  <script type="module" src="js/app-shell.js?v=20261014a"></script>
+
+  <!-- Seasonal layer (Navratri · Bathukamma · Dasara 2026). It switches itself
+       on for 10-21 Oct 2026 and does nothing on any other day, so it needs no
+       clean-up deploy. To remove it for good, delete this line and the
+       festival.* files. Preview a day with ?fest=2026-10-19, off with ?fest=off. -->
+  <script type="module" src="js/festival.js?v=20261014a"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">
