@@ -21,8 +21,8 @@ import {
   auth, db, VAPID_KEY,
   onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut,
   collection, query, orderBy, limit, onSnapshot, doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20261014a';
-import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20261014a';
+} from './firebase-config.js?v=20261014b';
+import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20261014b';
 
 // Refuse to run inside another website's frame (clickjacking: a hidden
 // frame tricking staff into tapping "Cancel order"). Same-site frames are fine.

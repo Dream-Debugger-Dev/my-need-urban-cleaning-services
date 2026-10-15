@@ -13,10 +13,10 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
   onAuthStateChanged, signOut,
   doc, setDoc, getDoc, serverTimestamp
-} from './firebase-config.js?v=20261014a';
+} from './firebase-config.js?v=20261014b';
 import {
   waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown, passwordProblem
-} from './auth-guard.js?v=20261014a';
+} from './auth-guard.js?v=20261014b';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let currentUser = null;

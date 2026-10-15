@@ -300,13 +300,18 @@ html.fest-lock .fd-fl, html.fest-lock .fest-bk.ready, html.fest-lock.fest .tab-f
   .fest-mandala { width: 430px; height: 430px; right: -190px; top: -70px; margin-top: 0; }
   .fest-mandala.ready { opacity: .13; }
 
-  /* extra reserved height is shared evenly above and below the content */
-  .fest-card { display: flex; flex-direction: column; justify-content: center; padding: 18px 16px 16px; border-radius: 22px; }
+  /* extra reserved height is shared evenly above and below the content.
+     align-items must be stretch: the grid's "center" would let the nine-night row
+     make this column wider than the card, and the card would cut the text off. */
+  .fest-card { display: flex; flex-direction: column; justify-content: center; align-items: stretch; padding: 18px 16px 16px; border-radius: 22px; }
   /* the Bathukamma sits in the top-right corner instead of taking a column */
   .fest-art { position: absolute; top: 10px; right: 8px; width: 92px; margin: 0; }
   .fest-bk.ready { animation: none; }
   .fest-art-diya { display: none; }
-  .fest-pills, .fest-title, .fest-sub { margin-right: 84px; }
+  /* The pills and title leave room for the picture. The Telugu and Hindi lines start
+     below it, so they get the full width: their glyph widths depend on the phone's own
+     fonts, and a roomy line cannot wrap differently from the one measured here. */
+  .fest-pills, .fest-title { margin-right: 84px; }
   .fest-title { font-size: 1.55rem; }
   .fest-sub { font-size: .95rem; margin-bottom: 8px; }
   /* the row scrolls right to the card's edges and fades out there */
@@ -330,9 +335,14 @@ html.fest-lock .fd-fl, html.fest-lock .fest-bk.ready, html.fest-lock.fest .tab-f
   .fest-modal { align-items: flex-end; padding: 0; }
   .fest-modal-box { width: 100%; border-radius: 22px 22px 0 0; padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
 }
+@media (max-width: 300px) {
+  /* fold cover screens: two buttons side by side only fit without their icons */
+  .fest-ghost { font-size: .8rem; padding-left: 6px; padding-right: 6px; }
+  .fest-ghost i { display: none; }
+}
 @media (max-width: 360px) {
   .fest-art { width: 78px; }
-  .fest-pills, .fest-title, .fest-sub { margin-right: 70px; }
+  .fest-pills, .fest-title { margin-right: 70px; }
   .fest-title { font-size: 1.4rem; }
 }
 

@@ -29,6 +29,14 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the first paint, so the page does not jump when the card appears
   (layout shift 0.226 → 0 on phones)
 
+### Fixed (same day, found on the live site)
+- On phones (up to 768px wide) the left of the festive card's text was cut off
+  ("Shubh Navratri" showed as "Navratri"). The card's column layout centred its
+  content, so the nine-night row made the text column wider than the card.
+  The content now fills the card's width, the Telugu/Hindi greetings use the
+  full width, and the reserved heights (`css/app.css`) were measured again for
+  the taller phone card (480-636px depending on width)
+
 ### Good to know
 - Calendars differ by a day between regions. The dates are in `js/festival.js`
   (`SEASON`, `DASARA`, `NAVRATRI`, Bathukamma list) and, for the three season
@@ -36,7 +44,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Petals stop on slow phones, with Data Saver or "reduce motion", while the
   greeting card is open, and when the hero is off-screen
 - To remove it for good, see the comment at the top of `js/festival.js`
-- Cache version moved to `20261014a`
+- Cache version moved to `20261014b`
 
 ---
 

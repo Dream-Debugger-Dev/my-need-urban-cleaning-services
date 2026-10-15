@@ -452,9 +452,24 @@ button.catalog-item { width: 100%; color: inherit; font: inherit; text-align: le
   .fest-on .fest-slot { --fest-reserve: 494px; }
 }
 @media (max-width: 768px) {
-  .fest-on .fest-slot { --fest-lift: 18px; --fest-reserve: 474px; padding-bottom: 6px; }
-  .fest-on.fest-after .fest-slot { --fest-reserve: 222px; }
+  .fest-on .fest-slot { --fest-lift: 18px; --fest-reserve: 480px; padding-bottom: 6px; }
+  .fest-on.fest-after .fest-slot { --fest-reserve: 228px; }   /* measured 193-221 */
   .fest-on .fest-slot:not(.is-ready)::before { border-radius: 22px; }
   /* room under the toran */
   .fest-on .hero { padding-top: 48px; }
+}
+/* On phones the card is a single column, so its height steps up as the screen gets
+   narrower (the greetings and captions wrap). Measured natural heights, tallest day:
+     588px and wider 473 | 444-587 510 | 368-443 531 | 318-367 550 | 298-317 566 | 280-297 630
+   Each value below adds ~6px of headroom for phone fonts that differ from the ones
+   measured. The 602px step is 15px above the 588px one because a desktop window of
+   that width has a scrollbar taking 15px (windows narrower than ~500px don't exist,
+   so the lower steps need no such allowance). */
+@media (max-width: 602px) { .fest-on .fest-slot { --fest-reserve: 516px; } }
+@media (max-width: 443px) { .fest-on .fest-slot { --fest-reserve: 537px; } }
+@media (max-width: 367px) { .fest-on .fest-slot { --fest-reserve: 556px; } }
+@media (max-width: 317px) { .fest-on .fest-slot { --fest-reserve: 572px; } }
+@media (max-width: 297px) {                                                      /* fold cover screens */
+  .fest-on .fest-slot { --fest-reserve: 636px; }
+  .fest-on.fest-after .fest-slot { --fest-reserve: 266px; }
 }
