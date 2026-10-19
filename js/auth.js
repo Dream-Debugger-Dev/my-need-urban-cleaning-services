@@ -13,10 +13,11 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail,
   onAuthStateChanged, signOut,
   doc, setDoc, getDoc, serverTimestamp
-} from './firebase-config.js?v=20261014b';
+} from './firebase-config.js?v=20261019a';
 import {
   waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown, passwordProblem
-} from './auth-guard.js?v=20261014b';
+} from './auth-guard.js?v=20261019a';
+import { sendEmailVerificationLink } from './identity.js?v=20261019a';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let currentUser = null;
@@ -346,6 +347,10 @@ async function emailSignup(name, email, password, errorEl, btn) {
     }
     closeAllModals();
     showToast('Account created! Welcome 🎉');
+    // Start verifying the email right away (a mobile number is added later, when they book)
+    sendEmailVerificationLink().then((r) => {
+      if (r.ok && !r.already) showToast(`Account created! We emailed a link to verify ${r.email}`);
+    });
     afterSignIn();
   } catch (err) {
     setMsg(errorEl, authMessage(err, 'Could not create your account. Please try again.'));

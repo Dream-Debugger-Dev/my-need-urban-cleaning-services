@@ -16,7 +16,7 @@
    deleted on activation.
    =============================== */
 
-const VERSION = 'mnu-20261014b';
+const VERSION = 'mnu-20261019a';
 const SHELL   = `${VERSION}-shell`;
 const RUNTIME = `${VERSION}-runtime`;
 

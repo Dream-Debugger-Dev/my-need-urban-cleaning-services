@@ -1,12 +1,15 @@
 /* ===============================
    MyNeedUrban — admin.js
-   Live Orders dashboard for staff.
+   Live Orders dashboard for the team (admins and staff).
 
-   - Staff sign in with their phone number (OTP). Access needs
-     users/{uid}.role == 'admin', a phone sign-in, AND that phone number to
-     equal users/{uid}.adminPhone: the same checks the Firestore security
-     rules enforce. The rules are the real lock; this page only explains
-     what's needed. A password can never open this page's data.
+   - They sign in with their phone number (OTP). Access needs
+     users/{uid}.role == 'admin' or 'staff', a phone sign-in, AND that phone
+     number to equal users/{uid}.adminPhone: the same checks the Firestore
+     security rules enforce. The rules are the real lock; this page only
+     explains what's needed. A password can never open this page's data.
+   - Admins also get "Team & alerts": add or remove staff by mobile number
+     (Cloud Functions addStaff / removeStaff) and choose who receives the
+     new-booking emails (settings/notifications).
    - Wrong codes and repeated OTP requests are slowed down (auth-guard.js),
      on top of Firebase's own limits.
    - Live order stream, bounded to the newest 300 ("Load older" adds more).
@@ -18,11 +21,11 @@
      and a count in the tab title.
    =============================== */
 import {
-  auth, db, VAPID_KEY,
+  auth, db, VAPID_KEY, callFunction,
   onAuthStateChanged, RecaptchaVerifier, signInWithPhoneNumber, signOut,
-  collection, query, orderBy, limit, onSnapshot, doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20261014b';
-import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20261014b';
+  collection, query, where, orderBy, limit, onSnapshot, doc, getDoc, setDoc, updateDoc, serverTimestamp,
+} from './firebase-config.js?v=20261019a';
+import { waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown } from './auth-guard.js?v=20261019a';
 
 // Refuse to run inside another website's frame (clickjacking: a hidden
 // frame tricking staff into tapping "Cancel order"). Same-site frames are fine.
@@ -54,11 +57,12 @@ const STATUS = {
 const PREV = { confirmed: 'pending', inProgress: 'confirmed', completed: 'inProgress', cancelled: 'pending' };
 const OPEN = new Set(['pending', 'confirmed', 'inProgress']);
 const statusOf = (b) => (STATUS[b.status] ? b.status : 'pending');
-const CHANNEL = { whatsapp: 'WhatsApp', call: 'Phone call', callback: 'Call-back', unknown: 'Website' };
+const CHANNEL = { website: 'Website', whatsapp: 'WhatsApp', call: 'Phone call', callback: 'Call-back', unknown: 'Website' };
 const channelLabel = (b) => (b.channel ? CHANNEL[b.channel] || b.channel : (b.source === 'app' ? 'App' : 'Website'));
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let me = null;
+let myRole = '';              // 'admin' or 'staff'
 let pageSize = PAGE_SIZE;
 let unsub = null;
 let orders = [];              // newest first (query order)
@@ -348,10 +352,12 @@ async function gateDenied(user, hasProfile, numberOnly = false) {
   showGate(`
     <div class="g-card">
       <div class="g-icon"><i class="fa-solid fa-lock" aria-hidden="true"></i></div>
-      <h1>${numberOnly ? 'Number not registered' : 'No admin access'}</h1>
+      <h1>${numberOnly ? 'Number not registered' : 'No team access'}</h1>
       <p><strong>${esc(phone || user.email || 'This account')}</strong> ${numberOnly
-        ? "isn't the phone number registered for this admin account."
-        : "isn't an admin account."}</p>
+        ? "isn't the phone number registered for this team account."
+        : "isn't set up for Live Orders."}</p>
+      ${numberOnly ? '' : `<p class="g-small">Staff: ask an admin to add your number under <strong>Team &amp; alerts</strong> (menu ⋮ on this page), then sign in again.</p>`}
+      <p class="g-small">Setting up the very first admin by hand:</p>
       <ol class="g-steps">
         <li>The owner opens <strong>Firebase console → Firestore Database → users</strong>.</li>
         <li>Opens the document named <code>${esc(user.uid)}</code>.</li>
@@ -410,7 +416,7 @@ async function checkAccess(user) {
     return;
   }
   if (auth.currentUser?.uid !== user.uid) return;
-  if (role !== 'admin') { setLive('off', 'No access'); gateDenied(user, hasProfile); return; }
+  if (role !== 'admin' && role !== 'staff') { setLive('off', 'No access'); gateDenied(user, hasProfile); return; }
   if (provider !== 'phone') { setLive('off', 'Phone sign-in needed'); gatePhoneOnly(); return; }
   // Same check as the database rules: the session's verified number must be
   // the one registered for this admin (stops an intruder who linked their own phone).
@@ -419,11 +425,14 @@ async function checkAccess(user) {
   }
 
   me = user;
+  myRole = role;
   $('gate').hidden = true;
   $('dash').hidden = false;
+  $('teamView').hidden = true;
   $('alertsBtn').hidden = false;
   $('menuBtn').hidden = false;
-  $('whoami').textContent = user.email || user.phoneNumber || '';
+  $('teamBtn').hidden = role !== 'admin';          // only admins manage staff and alerts
+  $('whoami').textContent = `${role === 'admin' ? 'Admin' : 'Staff'} · ${user.phoneNumber || user.email || ''}`;
   paintAlerts();
   listen();
   if (alertsOn && window.Notification?.permission === 'granted') registerPush();
@@ -443,6 +452,8 @@ onAuthStateChanged(auth, (user) => {
   fresh.clear();
   openMore.clear();
   clearUnread();
+  resetTeam();                       // staff names and numbers must not linger after sign-out either
+  myRole = '';
   if (!user) { setLive('off', 'Signed out'); gateSignIn(); return; }
   checkAccess(user);
 });
@@ -943,4 +954,239 @@ $('exportBtn').addEventListener('click', () => {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   toast(`Exported ${rows.length} order${rows.length === 1 ? '' : 's'}`);
+});
+
+// ─── Team & alerts (admins only) ─────────────────────────────────────────────
+// The staff list is the users whose role is admin or staff. Adding and removing
+// staff goes through Cloud Functions (they need to create the staff member's
+// account and set their role, which no browser is allowed to do). The alert
+// emails are one small document the admin edits directly; the database rules
+// check every address and refuse anyone but an admin.
+const MAX_ALERT_EMAILS = 5;
+let teamUnsub = null;
+let teamRows = [];                                   // admins first, then staff
+let draft = { ownerEmails: [], emailOwnerOnNewBooking: true, emailCustomers: true };
+let draftReady = false;                              // the saved settings have been read
+let draftDirty = false;
+
+const initials = (s) => {
+  const w = String(s || '').trim().split(/[\s@._-]+/).filter(Boolean);
+  return ((w[0]?.[0] || '') + (w.length > 1 ? w[w.length - 1][0] : '')).toUpperCase() || '·';
+};
+
+function tvMsg(id, text, ok = false) {
+  const el = $(id);
+  el.textContent = text || '';
+  el.classList.toggle('ok', !!ok);
+}
+
+/** Plain-English text for a Cloud Functions error (the functions already word theirs for people). */
+function callError(err) {
+  const code = String(err?.code || '');
+  if (code === 'functions/unavailable' || code === 'functions/deadline-exceeded' || !navigator.onLine) return 'Could not reach the server. Check your connection and try again.';
+  if (code === 'functions/internal' || code === 'functions/unknown' || !code.startsWith('functions/')) return 'Something went wrong. Please try again.';
+  if (code === 'functions/unauthenticated' || code === 'functions/permission-denied') return err.message || 'Only admins can do this.';
+  return err.message || 'Something went wrong. Please try again.';
+}
+
+function paintTeam() {
+  const list = $('teamList');
+  if (!teamRows.length) { list.innerHTML = '<li class="tv-empty">No staff yet. Add the first one below.</li>'; return; }
+  list.innerHTML = teamRows.map((r) => {
+    const isMe = me && r.uid === me.uid;
+    const phone = String(r.adminPhone || r.phone || '');
+    const d = digits(phone);
+    return `<li class="tv-row">
+      <span class="tv-av" aria-hidden="true">${esc(initials(r.name || phone))}</span>
+      <span class="tv-who"><strong>${esc(r.name || 'Unnamed')}${isMe ? ' <em>(you)</em>' : ''}</strong>
+        <small>${d ? `+91 ${fmt10(d)}` : esc(phone)}</small></span>
+      <span class="tv-role r-${esc(r.role)}">${r.role === 'admin' ? 'Admin' : 'Staff'}</span>
+      ${r.role === 'staff' ? `<button type="button" class="tv-x" data-remove="${esc(r.uid)}" aria-label="Remove ${esc(r.name || 'this staff member')}"><i class="fa-solid fa-user-minus" aria-hidden="true"></i></button>` : ''}
+    </li>`;
+  }).join('');
+}
+
+function paintMailSettings() {
+  const list = $('emailList');
+  list.innerHTML = draft.ownerEmails.length
+    ? draft.ownerEmails.map((e, i) => `<li class="tv-row">
+        <span class="tv-av" aria-hidden="true"><i class="fa-regular fa-envelope"></i></span>
+        <span class="tv-who"><strong>${esc(e)}</strong></span>
+        <button type="button" class="tv-x" data-drop="${i}" aria-label="Remove ${esc(e)}"${draft.ownerEmails.length === 1 ? ' disabled title="At least one address is needed"' : ''}><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </li>`).join('')
+    : `<li class="tv-empty">${draftReady ? 'No address saved yet. Add one below.' : 'Loading…'}</li>`;
+  $('tgOwner').checked = draft.emailOwnerOnNewBooking;
+  $('tgCustomer').checked = draft.emailCustomers;
+  $('emAdd').disabled = draft.ownerEmails.length >= MAX_ALERT_EMAILS;
+  $('emNew').disabled = draft.ownerEmails.length >= MAX_ALERT_EMAILS;
+  $('alertSave').disabled = !draftReady || !draftDirty || !draft.ownerEmails.length;
+}
+
+async function loadAlerts() {
+  draftReady = false;
+  paintMailSettings();
+  try {
+    const snap = await getDoc(doc(db, 'settings', 'notifications'));
+    const d = snap.exists() ? snap.data() : {};
+    draft = {
+      ownerEmails: Array.isArray(d.ownerEmails) ? d.ownerEmails.filter((e) => EMAIL_OK.test(e)).slice(0, MAX_ALERT_EMAILS) : [],
+      emailOwnerOnNewBooking: d.emailOwnerOnNewBooking !== false,
+      emailCustomers: d.emailCustomers !== false,
+    };
+    draftReady = true;
+    draftDirty = false;
+    tvMsg('alertMsg', snap.exists() ? '' : 'Nothing saved yet. Add an address and save: until then, emails go to the owner address set up with the system.');
+  } catch (err) {
+    console.error('[admin] alert settings read failed', err);
+    tvMsg('alertMsg', "Couldn't load the alert settings. Check your connection and reopen this screen.");
+  }
+  paintMailSettings();
+}
+
+function openTeam() {
+  if (myRole !== 'admin') return;                    // staff never get here, but be sure
+  $('dash').hidden = true;
+  $('teamView').hidden = false;
+  window.scrollTo(0, 0);
+  tvMsg('staffMsg', '');
+  $('staffInvite').hidden = true;
+  teamUnsub?.();
+  const q = query(collection(db, 'users'), where('role', 'in', ['admin', 'staff']));
+  teamUnsub = onSnapshot(q, (snap) => {
+    teamRows = snap.docs.map((d) => ({ uid: d.id, ...d.data() }))
+      .sort((a, b) => (a.role === b.role ? String(a.name || '').localeCompare(String(b.name || '')) : (a.role === 'admin' ? -1 : 1)));
+    paintTeam();
+  }, (err) => {
+    console.error('[admin] team list failed', err);
+    $('teamList').innerHTML = '<li class="tv-empty">Could not load your team. Check your connection and reopen this screen.</li>';
+  });
+  loadAlerts();
+}
+
+function closeTeam() {
+  teamUnsub?.();
+  teamUnsub = null;
+  $('teamView').hidden = true;
+  if (me) $('dash').hidden = false;
+  window.scrollTo(0, 0);
+}
+
+/** Forget everything on this screen (sign-out, or a different person signing in). */
+function resetTeam() {
+  teamUnsub?.();
+  teamUnsub = null;
+  teamRows = [];
+  draft = { ownerEmails: [], emailOwnerOnNewBooking: true, emailCustomers: true };
+  draftReady = false;
+  draftDirty = false;
+  $('teamView').hidden = true;
+  $('teamList').innerHTML = '';
+  $('emailList').innerHTML = '';
+  $('staffForm').reset();
+  $('emailForm').reset();
+  $('staffInvite').hidden = true;
+  tvMsg('staffMsg', '');
+  tvMsg('alertMsg', '');
+}
+
+$('teamBtn').addEventListener('click', () => { setMenu(false); openTeam(); });
+$('teamBack').addEventListener('click', closeTeam);
+
+// ── Add / remove staff ──
+$('staffForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  tvMsg('staffMsg', '');
+  $('staffInvite').hidden = true;
+  const name = $('stName').value.trim().replace(/\s+/g, ' ');
+  const phone = mobile10($('stPhone').value);
+  if (name.length < 2) { tvMsg('staffMsg', "Enter the staff member's name."); $('stName').focus(); return; }
+  if (!phone) { tvMsg('staffMsg', 'Enter a valid 10-digit mobile number.'); $('stPhone').focus(); return; }
+  const btn = $('staffAdd');
+  const label = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = 'Adding…';
+  try {
+    const r = await callFunction('addStaff', { phone, name });
+    tvMsg('staffMsg', `${r.name || name} can now sign in with +91 ${fmt10(phone)}.`, true);
+    const link = `${location.origin}${location.pathname}`;
+    $('staffInvite').href = `https://wa.me/91${phone}?text=${encodeURIComponent(
+      `Hi ${(r.name || name).split(' ')[0]}, you've been added to the MyNeedUrban team. Sign in with this mobile number to see live orders: ${link}`)}`;
+    $('staffInvite').hidden = false;
+    $('staffForm').reset();
+  } catch (err) {
+    console.warn('[admin] addStaff failed', err?.code || err);
+    tvMsg('staffMsg', callError(err));
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = label;
+  }
+});
+
+$('teamList').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-remove]');
+  if (!btn) return;
+  const row = teamRows.find((r) => r.uid === btn.dataset.remove);
+  if (!row) return;
+  if (!confirm(`Remove ${row.name || 'this staff member'}?\n\nThey will lose access to Live Orders straight away.`)) return;
+  btn.disabled = true;
+  try {
+    await callFunction('removeStaff', { uid: row.uid });
+    toast(`${row.name || 'Staff member'} removed`);
+  } catch (err) {
+    console.warn('[admin] removeStaff failed', err?.code || err);
+    btn.disabled = false;
+    tvMsg('staffMsg', callError(err));
+  }
+});
+
+// ── Alert emails ──
+function markDirty() { draftDirty = true; tvMsg('alertMsg', ''); paintMailSettings(); }
+
+$('emailForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  tvMsg('alertMsg', '');
+  const v = $('emNew').value.trim();
+  if (!EMAIL_OK.test(v)) { tvMsg('alertMsg', 'Enter one valid email address, like name@gmail.com.'); $('emNew').focus(); return; }
+  if (draft.ownerEmails.some((x) => x.toLowerCase() === v.toLowerCase())) { tvMsg('alertMsg', 'That address is already in the list.'); return; }
+  if (draft.ownerEmails.length >= MAX_ALERT_EMAILS) { tvMsg('alertMsg', `You can add up to ${MAX_ALERT_EMAILS} addresses.`); return; }
+  draft.ownerEmails.push(v);
+  $('emNew').value = '';
+  markDirty();
+});
+
+$('emailList').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-drop]');
+  if (!b || draft.ownerEmails.length <= 1) return;
+  draft.ownerEmails.splice(Number(b.dataset.drop), 1);
+  markDirty();
+});
+
+$('tgOwner').addEventListener('change', () => { draft.emailOwnerOnNewBooking = $('tgOwner').checked; markDirty(); });
+$('tgCustomer').addEventListener('change', () => { draft.emailCustomers = $('tgCustomer').checked; markDirty(); });
+
+$('alertSave').addEventListener('click', async () => {
+  if (!me || myRole !== 'admin' || !draft.ownerEmails.length) return;
+  const btn = $('alertSave');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    await setDoc(doc(db, 'settings', 'notifications'), {
+      ownerEmails: [...draft.ownerEmails],
+      emailOwnerOnNewBooking: draft.emailOwnerOnNewBooking,
+      emailCustomers: draft.emailCustomers,
+      updatedBy: me.uid,
+      updatedAt: serverTimestamp(),
+    });
+    draftDirty = false;
+    tvMsg('alertMsg', 'Saved. New bookings will be emailed to these addresses within a minute.', true);
+    toast('Alert settings saved');
+  } catch (err) {
+    console.error('[admin] alert settings save failed', err);
+    tvMsg('alertMsg', err?.code === 'permission-denied'
+      ? "You don't have permission to change these settings."
+      : "Couldn't save. Check your connection and try again.");
+  } finally {
+    btn.textContent = 'Save alert settings';
+    paintMailSettings();
+  }
 });

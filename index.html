@@ -8,7 +8,7 @@
   <!-- Festival season marker (Navratri · Bathukamma · Dasara 2026). Runs before
        first paint so the festive card's space is held open from the start; it
        does nothing outside 10-21 Oct 2026. Remove with js/festival.js. -->
-  <script src="js/festival-boot.js?v=20261014b"></script>
+  <script src="js/festival-boot.js?v=20261019a"></script>
   <!-- viewport-fit=cover lets the bottom tab bar sit under the iPhone home
        indicator; env(safe-area-inset-*) in css/app.css keeps content clear of it. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -39,11 +39,11 @@
        CSS/JS — here, in pages/*.html, in every `import ... from './x.js?v='`
        inside js/, and VERSION in sw.js. All must be the SAME value: a module
        imported under two URLs runs twice. The QA check enforces this. -->
-  <link rel="stylesheet" href="css/style.css?v=20261014b" />
-  <link rel="stylesheet" href="css/animations.css?v=20261014b" />
+  <link rel="stylesheet" href="css/style.css?v=20261019a" />
+  <link rel="stylesheet" href="css/animations.css?v=20261019a" />
   <!-- App layer: bottom tab bar, menu sheet, discovery grid, mobile booking
        sheet. Loaded last so it can refine style.css without editing it. -->
-  <link rel="stylesheet" href="css/app.css?v=20261014b" />
+  <link rel="stylesheet" href="css/app.css?v=20261019a" />
 
   <script type="application/ld+json">
   {
@@ -771,20 +771,20 @@
     <i class="fa-brands fa-whatsapp"></i>
   </a>
 
-  <script src="js/main.js?v=20261014b"></script>
-  <script src="js/pwa.js?v=20261014b" defer></script>
-  <script src="js/slider.js?v=20261014b"></script>
-  <script type="module" src="js/form.js?v=20261014b"></script>
-  <script type="module" src="js/auth.js?v=20261014b"></script>
-  <script type="module" src="js/booking.js?v=20261014b"></script>
+  <script src="js/main.js?v=20261019a"></script>
+  <script src="js/pwa.js?v=20261019a" defer></script>
+  <script src="js/slider.js?v=20261019a"></script>
+  <script type="module" src="js/form.js?v=20261019a"></script>
+  <script type="module" src="js/auth.js?v=20261019a"></script>
+  <script type="module" src="js/booking.js?v=20261019a"></script>
   <!-- Bottom tab bar, Menu sheet and phone header icons (<= 768px) -->
-  <script type="module" src="js/app-shell.js?v=20261014b"></script>
+  <script type="module" src="js/app-shell.js?v=20261019a"></script>
 
   <!-- Seasonal layer (Navratri · Bathukamma · Dasara 2026). It switches itself
        on for 10-21 Oct 2026 and does nothing on any other day, so it needs no
        clean-up deploy. To remove it for good, delete this line and the
        festival.* files. Preview a day with ?fest=2026-10-19, off with ?fest=off. -->
-  <script type="module" src="js/festival.js?v=20261014b"></script>
+  <script type="module" src="js/festival.js?v=20261019a"></script>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">

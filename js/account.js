@@ -11,7 +11,10 @@ import {
   auth, db, onAuthStateChanged, signOut,
   collection, query, where, limit, onSnapshot,
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20261014b';
+} from './firebase-config.js?v=20261019a';
+import {
+  identity, fmtMobile, mountPhoneVerify, addEmailLogin, sendEmailVerificationLink, refreshIdentity, cancelPhone,
+} from './identity.js?v=20261019a';
 
 // Refuse to run inside another website's frame (clickjacking). Same-site frames are fine.
 if (window.top !== window.self) {
@@ -120,10 +123,13 @@ onAuthStateChanged(auth, (u) => {
   profile = null;
   bookings = [];
   loaded = false;
-  if (!u) { show('acctSignedOut'); return; }
+  openForm = '';
+  cancelPhone();
+  if (!u) { show('acctSignedOut'); paintIdentity(); return; }
 
   show('acctMain');
   paintProfile();
+  paintIdentity();
   renderList();
   listen();
 
@@ -218,6 +224,203 @@ $('apForm').addEventListener('submit', async (e) => {
   }
 });
 
+// ─── Login details: a verified mobile number AND a verified email, on one account ─
+// Whichever way a customer first logged in, the other gets added here and verified,
+// so either one logs them in to the same bookings. The mobile number is what the
+// team calls, so it is needed to book; the email is for updates and as a second way in.
+let openForm = '';            // '' | 'phone' | 'email' : which "add" form is open
+let emailSentTo = '';         // after a verification link was sent, remember where
+
+const badge = (cls, text) => `<span class="id-badge ${cls}">${esc(text)}</span>`;
+
+function paintIdentity() {
+  const card = $('idCard');
+  if (!card) return;
+  const who = identity();
+  card.hidden = !who.signedIn;
+  if (!who.signedIn) return;
+  const both = !!who.phone && who.emailVerified;
+  card.classList.toggle('is-complete', both);
+  $('idSub').textContent = both
+    ? 'Both are verified. You can log in either way and see the same bookings.'
+    : 'Add and verify both, so you can log in either way and we can always reach you.';
+
+  // Mobile. (Left alone while its OTP form is open, so a repaint can't wipe a half-typed code.)
+  const phoneBusy = openForm === 'phone' && !who.phone && $('idPhoneSlot')?.dataset.mounted === '1';
+  if (!phoneBusy) {
+    $('idPhoneRow').innerHTML = `
+      <div class="id-line">
+        <i class="fa-solid fa-mobile-screen-button id-ic" aria-hidden="true"></i>
+        <div class="id-what"><strong>Mobile</strong><span>${who.phone ? esc(fmtMobile(who.phone)) : 'Not added yet'}</span></div>
+        ${who.phone
+          ? badge('ok', 'Verified')
+          : `${badge('warn', 'Needed to book')}<button type="button" class="id-act" data-id="phone">Add &amp; verify</button>`}
+      </div>
+      <div class="id-slot" id="idPhoneSlot"${openForm === 'phone' && !who.phone ? '' : ' hidden'}></div>`;
+  }
+
+  // Email
+  let emailLine;
+  if (!who.email) {
+    emailLine = `${badge('warn', 'Not added')}<button type="button" class="id-act" data-id="email">Add &amp; verify</button>`;
+  } else if (!who.emailVerified) {
+    emailLine = `${badge('warn', 'Not verified')}<button type="button" class="id-act" data-id="resend">Send link</button>`;
+  } else {
+    emailLine = badge('ok', 'Verified');
+  }
+  const waiting = who.email && !who.emailVerified;
+  $('idEmailRow').innerHTML = `
+    <div class="id-line">
+      <i class="fa-regular fa-envelope id-ic" aria-hidden="true"></i>
+      <div class="id-what"><strong>Email</strong><span>${who.email ? esc(who.email) : 'Not added yet'}</span></div>
+      ${emailLine}
+    </div>
+    ${waiting ? `<p class="id-note">
+        ${emailSentTo ? `We sent a verification link to <strong>${esc(emailSentTo)}</strong>. Open it` : 'Open the verification link in your email'},
+        then tap <button type="button" class="id-link" data-id="checked">I've verified</button>.
+        Can't find it? Check your spam folder.</p>` : ''}
+    <form class="id-form" id="idEmailForm" novalidate${openForm === 'email' && !who.email ? '' : ' hidden'}>
+      <label class="ap-field"><span>Email</span>
+        <input class="field-input" id="idEmail" type="email" autocomplete="email" maxlength="200" placeholder="you@email.com" /></label>
+      <label class="ap-field"><span>Create a password <em>(to log in with this email)</em></span>
+        <input class="field-input" id="idPass" type="password" autocomplete="new-password" maxlength="128" /></label>
+      <p class="idw-msg" id="idEmailMsg" role="alert" aria-live="polite"></p>
+      <div class="ap-form-btns">
+        <button type="button" class="btn btn-outline" data-id="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="idEmailSave">Add &amp; send link</button>
+      </div>
+    </form>`;
+
+  if (openForm === 'phone' && !who.phone) mountPhoneStep();
+}
+
+function mountPhoneStep() {
+  const slot = $('idPhoneSlot');
+  if (!slot || slot.dataset.mounted === '1') return;
+  slot.dataset.mounted = '1';
+  mountPhoneVerify(slot, {
+    link: true,
+    name: profile?.name || user?.displayName || '',
+    sendLabel: 'Send OTP',
+    verifyLabel: 'Verify mobile number',
+    onDone: async (u) => {
+      openForm = '';
+      profile = { ...(profile || {}), phone: u.phoneNumber };
+      await refreshIdentity();
+      toast('Mobile number verified ✓');
+      paintProfile();
+      paintIdentity();
+    },
+  }).focus();
+}
+
+$('idCard')?.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-id]');
+  if (!b) return;
+  const what = b.dataset.id;
+  if (what === 'phone' || what === 'email') {
+    openForm = what;
+    paintIdentity();
+    if (what === 'email') $('idEmail')?.focus();
+  } else if (what === 'cancel') {
+    openForm = '';
+    cancelPhone();
+    paintIdentity();
+  } else if (what === 'resend') {
+    b.disabled = true;
+    const r = await sendEmailVerificationLink();
+    toast(r.ok ? `Verification link sent to ${r.email || identity().email}` : r.message);
+    if (r.ok) emailSentTo = r.email || identity().email;
+    paintIdentity();
+  } else if (what === 'checked') {
+    const was = identity().emailVerified;
+    const now = await refreshIdentity();
+    if (now.emailVerified && !was) toast('Email verified ✓');
+    else if (!now.emailVerified) toast("Not verified yet. Open the link in your email first, then try again.");
+    paintIdentity();
+  }
+});
+
+$('idCard')?.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'idEmailForm') return;
+  e.preventDefault();
+  const msg = $('idEmailMsg');
+  const btn = $('idEmailSave');
+  msg.textContent = '';
+  btn.disabled = true;
+  const label = btn.innerHTML;
+  btn.textContent = 'Adding…';
+  const r = await addEmailLogin($('idEmail').value, $('idPass').value, { name: profile?.name || '' });
+  btn.disabled = false;
+  btn.innerHTML = label;
+  if (!r.ok) { msg.textContent = r.message; return; }
+  openForm = '';
+  emailSentTo = r.email;
+  profile = { ...(profile || {}), email: r.email };
+  toast(r.sent ? `Verification link sent to ${r.email}` : 'Email added. Tap "Send link" to verify it.');
+  paintProfile();
+  paintIdentity();
+});
+
+// Coming back from the verification email in another tab: pick up the change by itself
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible' || !user) return;
+  const was = identity();
+  if (!was.email || was.emailVerified) return;
+  const now = await refreshIdentity();
+  if (now.emailVerified) { toast('Email verified ✓'); paintIdentity(); }
+});
+
+// ─── The booking, as a WhatsApp message ───────────────────────────────────────
+/**
+ * The booking's details as a WhatsApp message to the team, built from what was
+ * saved. (Customers send it from here, not from the booking sheet.)
+ */
+function waDetails(b) {
+  const SEP = '- - - - - - - - - - - - - - -';
+  const qty = Number(b.quantity) || 1;
+  const L = ['*BOOKING DETAILS*', '_MyNeedUrban Cleaning Services_', SEP, ''];
+  if (b.orderId) L.push(`*Order ID: ${b.orderId}*`, '');
+
+  L.push('*SERVICE*', b.servicePath || b.serviceName || 'Cleaning service');
+  if (b.enquiredVia) L.push(`_(enquired via "${b.enquiredVia}")_`);
+  if (b.venueType) L.push(`*Venue type:* ${b.venueType}`);
+  L.push('');
+
+  L.push('*PRICING*');
+  if (Number(b.amount) > 0) {
+    if (qty > 1) L.push(`Quantity: ${qty}`);
+    L.push(`*Total: ₹${inr(b.amount)}*${qty === 1 && b.priceUnit ? ` (${b.priceUnit})` : ''}`);
+    L.push('_Pay after the service is completed._');
+  } else {
+    L.push('Custom price — to be confirmed');
+  }
+  L.push('');
+
+  const address = String(b.address || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  L.push('*SERVICE ADDRESS*');
+  if (address.length) L.push(...address); else L.push('(not provided)');
+  const gps = b.geo && Number.isFinite(+b.geo.lat) && Number.isFinite(+b.geo.lng) ? `${+b.geo.lat}, ${+b.geo.lng}` : '';
+  if (gps) L.push(`GPS: ${gps} _(shared by customer)_`);
+  const maps = safeMaps(b.mapsLink);
+  if (maps) L.push('', '*NAVIGATE*', maps);
+  L.push('');
+
+  const notes = String(b.notes || '').trim();
+  if (notes) { L.push(b.pricingType === 'fixed' ? '*CUSTOMER NOTES*' : '*REQUIREMENT DETAILS*', ...notes.split(/\r?\n/).map((l) => l.trim()).filter(Boolean), ''); }
+
+  const day = parseDay(b.scheduledDate);
+  if (day) L.push('*PREFERRED DATE*', day.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }), '');
+
+  const phone = digits10(b.customerPhone);
+  const alt = digits10(b.customerAltPhone);
+  L.push('*CONTACT DETAILS*', `Name: ${b.customerName || '(not provided)'}`, `Phone: ${phone ? `+91 ${phone}` : '(not provided)'}`);
+  if (alt) L.push(`Alt Phone: +91 ${alt}`);
+  if (b.customerEmail) L.push(`Email: ${b.customerEmail}`);
+  L.push('', SEP, '_Sent from myneedurban.com_');
+  return L.join('\n');
+}
+
 // ─── Bookings list ────────────────────────────────────────────────────────────
 const dayKey = (b) => parseDay(b.scheduledDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
 
@@ -283,6 +486,7 @@ function card(b) {
   const oid = b.orderId || '';
   const help = `https://wa.me/${WA}?text=${encodeURIComponent(
     `Hi MyNeedUrban, I have a question about my booking ${oid} (${b.serviceName || 'cleaning'}).`)}`;
+  const sendDetails = `https://wa.me/${WA}?text=${encodeURIComponent(waDetails(b))}`;
   const rebookId = b.serviceId && b.serviceId !== 'callback' ? b.serviceId : 'root';
 
   const tracker = st === 'cancelled'
@@ -313,6 +517,7 @@ function card(b) {
       ${placed ? `<span>Placed ${esc(placed)}</span>` : ''}
     </div>
     <div class="bk-actions">
+      ${OPEN.has(st) ? `<a class="bk-btn bk-wa" href="${sendDetails}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Send details on WhatsApp</a>` : ''}
       <a class="bk-btn" href="${help}" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Get help</a>
       ${maps ? `<a class="bk-btn" href="${esc(maps)}" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot" aria-hidden="true"></i> Location</a>` : ''}
       ${OPEN.has(st) ? '' : `<a class="bk-btn" href="../index.html?book=${encodeURIComponent(rebookId)}"><i class="fa-solid fa-rotate-right" aria-hidden="true"></i> Book again</a>`}

@@ -6,6 +6,48 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.5.0] — 2026-10-19
+
+### Changed
+- **Booking: Proceed, then verify.** The last step of the booking sheet now has
+  one **Proceed** button. The "Send on WhatsApp" and "Call Us" buttons are
+  gone from it. Proceed asks the customer to verify their mobile number with
+  an OTP (or log in with their email), saves the booking under their account,
+  and shows the order ID with a **Track my order** button. A customer who is
+  already logged in with a verified number just taps **Confirm booking**
+- A booking is shown as received only once it is really saved. On a weak
+  connection the customer sees "We couldn't save your booking yet" with
+  **Try again**; trying again can never create a second booking
+- **My Bookings**: every open booking has **Send details on WhatsApp**, which
+  opens WhatsApp to the team with the booking's details (service, price,
+  address with a Maps link, date, contact). **Get help** stays
+- Booking records now say `channel: "website"` (they used to say whatsapp or
+  call); Live Orders and the owner email show it as "Website"
+- Staff can now work in Live Orders too: the page accepts the new **staff**
+  role as well as **admin**
+
+### Added
+- **One account, two verified logins** (`js/identity.js`). My Bookings has a
+  "Your login details" card: a customer who signed in with their number adds
+  and verifies an email (a verification link is sent; it counts once they tap
+  it); a customer who signed in with an email adds and verifies a mobile
+  number by OTP (needed to book). Both are attached to the same account, so
+  either one logs in to the same bookings. New email sign-ups get the
+  verification link straight away
+- **Team & alerts** on the admin page (admins only, menu ⋮): add or remove
+  staff by mobile number, send them the sign-in link on WhatsApp, and choose
+  which email addresses get the new-booking emails (up to 5, with switches for
+  the owner emails and the customer emails)
+
+### Security
+- Staff role with limited access, the alert-email settings and the staff
+  functions are described in the platform repo (`backend/SECURITY.md`)
+- `pages/admin.html` may now reach the Cloud Functions address; no other page
+  was widened. The Content-Security-Policy is otherwise unchanged
+- Cache version moved to `20261019a`
+
+---
+
 ## [1.4.0] — 2026-10-14
 
 ### Added

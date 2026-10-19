@@ -21,9 +21,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- Same ?v= as index.html and every JS import — see the note in index.html -->
-  <link rel="stylesheet" href="../css/style.css?v=20261014b" />
-  <link rel="stylesheet" href="../css/app.css?v=20261014b" />
-  <link rel="stylesheet" href="../css/account.css?v=20261014b" />
+  <link rel="stylesheet" href="../css/style.css?v=20261019a" />
+  <link rel="stylesheet" href="../css/app.css?v=20261019a" />
+  <link rel="stylesheet" href="../css/account.css?v=20261019a" />
 </head>
 <body data-page="account">
 
@@ -93,6 +93,13 @@
           <small class="ap-hint">We use these details to fill in your next booking for you.</small>
         </form>
 
+        <section class="id-card" id="idCard" aria-labelledby="idTitle" hidden>
+          <h2 id="idTitle"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Your login details</h2>
+          <p class="id-sub" id="idSub"></p>
+          <div class="id-row" id="idPhoneRow"></div>
+          <div class="id-row" id="idEmailRow"></div>
+        </section>
+
         <div class="acct-stats" id="acctStats"></div>
 
         <div class="acct-tabs" role="tablist" aria-label="Bookings">
@@ -120,8 +127,8 @@
 
   <div id="mnuToast"></div>
 
-  <script src="../js/pwa.js?v=20261014b" defer></script>
-  <script type="module" src="../js/account.js?v=20261014b"></script>
-  <script type="module" src="../js/app-shell.js?v=20261014b"></script>
+  <script src="../js/pwa.js?v=20261019a" defer></script>
+  <script type="module" src="../js/account.js?v=20261019a"></script>
+  <script type="module" src="../js/app-shell.js?v=20261019a"></script>
 </body>
 </html>

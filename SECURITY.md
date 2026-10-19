@@ -17,9 +17,18 @@ site adds the browser-side layers:
   passwords or OTPs, at most 3 OTP texts per 15 minutes, and a check that new
   passwords aren't easy to guess. Firebase enforces its own limits on top.
 - **Staff sign-in is phone OTP only** (`js/admin.js`), and the number must be
-  the one registered for that admin (`adminPhone`). The database rules refuse
-  admin access to password sessions and to unregistered numbers, so the page
-  never asks for a password.
+  the one registered for that admin or staff member (`adminPhone`). The
+  database rules refuse access to password sessions and to unregistered
+  numbers, so the page never asks for a password. Staff can work on orders;
+  only admins see **Team & alerts** (the menu entry is hidden for staff, and
+  the database and the `addStaff` / `removeStaff` functions refuse them anyway).
+  Only `pages/admin.html` is allowed to talk to the Cloud Functions address
+  (`https://asia-south1-myneedurban-ec1c9.cloudfunctions.net`) in its policy.
+- **Bookings need a verified mobile number** (`js/booking.js`, `js/identity.js`):
+  the last step makes the customer verify their number with an OTP (or log
+  in), and the booking is saved under their account. A customer who signs in
+  with a number can add and verify an email, and one who signs in with an
+  email must add and verify a number: both end up on one account.
 - **No clickjacking**: Live Orders and My Bookings hide themselves if another
   website puts them in a frame.
 - **Safe links**: only real Google Maps links become "Navigate" buttons, and

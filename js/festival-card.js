@@ -6,7 +6,7 @@
    Everything is drawn on a canvas in the browser: nothing is uploaded, and
    nothing about the visitor is collected.
    ========================================================================== */
-import * as A from './festival-art.js?v=20261014b';
+import * as A from './festival-art.js?v=20261019a';
 
 const W = 1080;
 const H = 1350;

@@ -26,6 +26,10 @@ import {
   getAuth,
   RecaptchaVerifier,
   signInWithPhoneNumber,
+  linkWithPhoneNumber,
+  linkWithCredential,
+  EmailAuthProvider,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -53,13 +57,26 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+/**
+ * Calls a Cloud Function (a "callable") by name and returns its result.
+ * The Functions library is loaded only when this is first used (only the admin
+ * page does), so the public pages don't download it. Functions run in Mumbai.
+ */
+async function callFunction(name, data) {
+  const { getFunctions, httpsCallable } =
+    await import('https://www.gstatic.com/firebasejs/11.7.1/firebase-functions.js');
+  const result = await httpsCallable(getFunctions(app, 'asia-south1'), name)(data);
+  return result.data;
+}
+
 export {
-  app, db, auth, VAPID_KEY,
+  app, db, auth, VAPID_KEY, callFunction,
   // Firestore helpers
   collection, addDoc, serverTimestamp, setDoc, doc, getDoc,
   query, where, orderBy, limit, onSnapshot, updateDoc,
   // Auth helpers
-  RecaptchaVerifier, signInWithPhoneNumber,
+  RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, linkWithCredential,
+  EmailAuthProvider, sendEmailVerification,
   signInWithEmailAndPassword, createUserWithEmailAndPassword,
   sendPasswordResetEmail, onAuthStateChanged, signOut
 };
