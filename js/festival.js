@@ -60,10 +60,10 @@ const HI = {
 };
 
 // ─── Versioned URLs (the ?v= must match index.html; the QA check enforces it) ──
-const CSS_URL = new URL('../css/festival.css?v=20261019a', import.meta.url).href;
-const ART_URL = './festival-art.js?v=20261019a';
-const FX_URL = './festival-fx.js?v=20261019a';
-const CARD_URL = './festival-card.js?v=20261019a';
+const CSS_URL = new URL('../css/festival.css?v=20261020a', import.meta.url).href;
+const ART_URL = './festival-art.js?v=20261020a';
+const FX_URL = './festival-fx.js?v=20261020a';
+const CARD_URL = './festival-card.js?v=20261020a';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

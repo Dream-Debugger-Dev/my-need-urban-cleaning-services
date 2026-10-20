@@ -6,6 +6,71 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.6.0] — 2026-10-20
+
+### Changed
+- **The admin page is now a proper app**, rebuilt for desktop and phone: a left
+  menu (a bottom tab bar on phones) with five pages, instead of one long list
+  and a hidden menu
+  - **Overview**: new orders, today's jobs, overdue, the next 7 days and what
+    was earned this month, then what needs action, today and tomorrow, a
+    14-day chart and the top services. Every card opens the matching orders
+  - **Orders**: status tabs with counts; search by name, order ID, phone,
+    service or area; filters for the service date (today, tomorrow, next 7
+    days, overdue, no date or a range), service, source and who it is assigned
+    to; sort by newest, oldest, soonest date or amount; filters show as pills
+    you can remove; a table on wide screens and cards on phones; **Export CSV**
+    of what is on screen. The page address remembers the filters, so a reload
+    or a shared link comes back the same
+  - **Schedule**: a 14-day strip with job counts and the day's jobs; overdue
+    and no-date work is one tap away
+  - **People**: **Customers** (orders, spend, repeat customers, call and
+    WhatsApp) and **Team**
+  - **Settings**: alerts and keep-screen-awake for this device, who you are
+    signed in as, and the booking emails (admins)
+- Tapping an order opens a **details panel** (a side panel on desktop, a sheet
+  on phones): progress steps, a one-tap next step, call, WhatsApp and navigate,
+  change the service date, assign a team member, staff note and history.
+  Escape and the Back button close it, and a link to an order opens it
+- A friendly "are you sure?" box replaces the browser pop-up for cancelling,
+  moving back and removing
+- Staff see Overview, Orders, Schedule and Settings; People and the email
+  settings are for admins only
+- The admin page follows changes at once: when an admin changes someone's role
+  or number, or removes them, that person's open page updates (or locks)
+  within seconds instead of staying open until it is reloaded
+- The sign-in screens say "the admin app" instead of "Live Orders"
+
+### Added
+- **Edit the team**: tap a person in People → Team to change their **name**, a
+  staff member's **mobile number** (the old number stops working and they sign
+  in again with the new one) or their **role** (staff ↔ admin, with a
+  confirmation; never your own). A person with no name shows "Add a name".
+  Remove from the team is in the same window. An admin's number can't be
+  changed from the page, so nobody can be locked out. Backed by the new
+  `updateTeamMember` Cloud Function (renaming also updates the jobs they hold)
+- Assign an order to a team member from its panel, and filter Orders by person
+  ("Assigned to me" for staff)
+
+### Fixed
+- The customers list always said "just now" under "last order"
+- Clearing the filters while the cursor was still in the search box left the
+  old words in the box
+- The order table no longer lets the action button sit on top of the amount,
+  and its rows line up under the headings
+- Overview cards no longer cut their text off, and nothing runs past the edge
+  of a phone screen
+
+### Security
+- New function `updateTeamMember` is admin-only and re-checks the caller on the
+  server: only staff numbers can change, a number that belongs to another
+  account is refused, nobody can change their own role, and every change is
+  written to the audit log (platform repo, `backend/SECURITY.md`)
+- The content-security policy is unchanged
+- Cache version moved to `20261020a`
+
+---
+
 ## [1.5.0] — 2026-10-19
 
 ### Changed

@@ -20,8 +20,12 @@ site adds the browser-side layers:
   the one registered for that admin or staff member (`adminPhone`). The
   database rules refuse access to password sessions and to unregistered
   numbers, so the page never asks for a password. Staff can work on orders;
-  only admins see **Team & alerts** (the menu entry is hidden for staff, and
-  the database and the `addStaff` / `removeStaff` functions refuse them anyway).
+  only admins see **People** and the email **Settings** (hidden for staff, and
+  the database and the `addStaff` / `updateTeamMember` / `removeStaff`
+  functions refuse them anyway). The page also watches the signed-in person's
+  own profile: when an admin changes their role or number, or removes them,
+  their open page re-checks access within seconds instead of staying open
+  until it is reloaded.
   Only `pages/admin.html` is allowed to talk to the Cloud Functions address
   (`https://asia-south1-myneedurban-ec1c9.cloudfunctions.net`) in its policy.
 - **Bookings need a verified mobile number** (`js/booking.js`, `js/identity.js`):
@@ -29,7 +33,7 @@ site adds the browser-side layers:
   in), and the booking is saved under their account. A customer who signs in
   with a number can add and verify an email, and one who signs in with an
   email must add and verify a number: both end up on one account.
-- **No clickjacking**: Live Orders and My Bookings hide themselves if another
+- **No clickjacking**: the admin app and My Bookings hide themselves if another
   website puts them in a frame.
 - **Safe links**: only real Google Maps links become "Navigate" buttons, and
   only plain email addresses become mailto links. `?next=` after login only

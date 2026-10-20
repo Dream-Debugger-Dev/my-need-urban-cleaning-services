@@ -20,10 +20,10 @@ import {
   RecaptchaVerifier, signInWithPhoneNumber, linkWithPhoneNumber, linkWithCredential,
   EmailAuthProvider, sendEmailVerification, signInWithEmailAndPassword,
   doc, getDoc, setDoc, serverTimestamp,
-} from './firebase-config.js?v=20261019a';
+} from './firebase-config.js?v=20261020a';
 import {
   waitFor, failed, succeeded, smsWait, smsSent, inWords, countdown, passwordProblem,
-} from './auth-guard.js?v=20261019a';
+} from './auth-guard.js?v=20261020a';
 
 const SITE = new URL('../', import.meta.url);        // site root (this file is /js/identity.js)
 

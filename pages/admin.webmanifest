@@ -1,7 +1,7 @@
 {
-  "name": "MyNeedUrban Admin — Live Orders",
+  "name": "MyNeedUrban Admin",
   "short_name": "MNU Admin",
-  "description": "Incoming bookings in real time, with call, WhatsApp and navigation shortcuts.",
+  "description": "Orders, schedule, customers and team for MyNeedUrban, with new bookings in real time.",
   "id": "/pages/admin.html",
   "start_url": "/pages/admin.html?source=pwa",
   "scope": "/pages/admin.html",

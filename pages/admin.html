@@ -7,7 +7,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>Live Orders — MyNeedUrban Admin</title>
+  <title>MNU Admin — MyNeedUrban</title>
   <link rel="icon" type="image/png" href="../assets/favicon/MyNeedUrban_favicon_v3.png" />
   <!-- Its own manifest, so staff install "MNU Admin" separately from the customer app -->
   <link rel="manifest" href="admin.webmanifest" />
@@ -23,122 +23,313 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <!-- Same ?v= as index.html and every JS import — see the note in index.html -->
-  <link rel="stylesheet" href="../css/admin.css?v=20261019a" />
+  <link rel="stylesheet" href="../css/admin.css?v=20261020a" />
 </head>
 <body class="adm">
 
-  <header class="adm-bar">
-    <img src="../assets/favicon/MyNeedUrban_favicon_v3.png" alt="" class="adm-logo" width="34" height="34" />
-    <div class="adm-titles">
-      <strong>Live Orders</strong>
-      <span class="adm-live" id="liveState" data-state="wait"><span class="dot" aria-hidden="true"></span><span id="liveTxt">Connecting…</span></span>
-    </div>
-    <div class="adm-bar-actions">
-      <button type="button" class="adm-ibtn" id="alertsBtn" aria-pressed="false" hidden>
-        <i class="fa-solid fa-bell-slash" aria-hidden="true"></i><span>Alerts off</span>
-      </button>
-      <button type="button" class="adm-ibtn" id="installAppBtn" hidden>
-        <i class="fa-solid fa-mobile-screen" aria-hidden="true"></i><span class="pwa-label">Install</span>
-      </button>
-      <button type="button" class="adm-ibtn adm-icon-only" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="admMenu" aria-label="More options" hidden>
-        <i class="fa-solid fa-ellipsis-vertical" aria-hidden="true"></i>
-      </button>
-    </div>
-    <div class="adm-menu" id="admMenu" hidden>
-      <p class="adm-who" id="whoami"></p>
-      <button type="button" id="teamBtn" hidden><i class="fa-solid fa-users-gear" aria-hidden="true"></i><span>Team &amp; alerts</span></button>
-      <button type="button" id="awakeBtn" hidden><i class="fa-solid fa-sun" aria-hidden="true"></i><span>Keep screen awake</span></button>
-      <a href="../index.html" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i><span>Open website</span></a>
-      <button type="button" id="signOutBtn" class="danger"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Sign out</span></button>
-    </div>
-  </header>
+  <!-- Sign-in / access / loading states are rendered here by admin.js -->
+  <section class="adm-gate" id="gate" aria-live="polite">
+    <div class="g-card"><div class="spinner" aria-hidden="true"></div><p>Checking your session…</p></div>
+  </section>
 
-  <main class="adm-main">
-    <!-- Sign-in / access / loading states are rendered here by admin.js -->
-    <section class="adm-gate" id="gate" aria-live="polite">
-      <div class="g-card"><div class="spinner" aria-hidden="true"></div><p>Checking your session…</p></div>
-    </section>
+  <!-- The app: shown only to signed-in admins and staff -->
+  <div class="app" id="dash" hidden>
 
-    <section id="dash" hidden>
-      <div class="adm-stats" id="stats"></div>
+    <!-- Desktop: left menu -->
+    <aside class="side" id="side">
+      <a class="side-brand" href="#/overview" aria-label="MyNeedUrban admin home">
+        <img src="../assets/favicon/MyNeedUrban_favicon_v3.png" alt="" width="38" height="38" />
+        <span><strong>MyNeedUrban</strong><small>Admin</small></span>
+      </a>
+      <nav class="side-nav" aria-label="Pages">
+        <a href="#/overview" data-nav="overview"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span>Overview</span></a>
+        <a href="#/orders" data-nav="orders"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Orders</span><b class="nav-badge" data-badge-new hidden></b></a>
+        <a href="#/schedule" data-nav="schedule"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span>Schedule</span></a>
+        <a href="#/people" data-nav="people" data-admin><i class="fa-solid fa-user-group" aria-hidden="true"></i><span>People</span></a>
+        <a href="#/settings" data-nav="settings"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Settings</span></a>
+      </nav>
+      <div class="side-foot">
+        <div class="who">
+          <span class="avatar" id="whoAv" aria-hidden="true">A</span>
+          <span class="who-t"><strong id="whoName">Admin</strong><small id="whoami"></small></span>
+        </div>
+        <a class="side-link" href="../index.html" target="_blank" rel="noopener"><i class="fa-solid fa-globe" aria-hidden="true"></i> Open website</a>
+        <button type="button" class="side-link" id="signOutBtn"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i> Sign out</button>
+      </div>
+    </aside>
 
-      <div class="adm-tools">
-        <div class="adm-search">
+    <div class="main-col">
+      <header class="top" id="topbar">
+        <img class="top-logo" src="../assets/favicon/MyNeedUrban_favicon_v3.png" alt="" width="32" height="32" />
+        <h1 class="top-title" id="pageTitle">Overview</h1>
+        <label class="top-search" for="gSearch">
           <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-          <input id="q" type="search" autocomplete="off" enterkeyhint="search"
-                 placeholder="Search order ID, name, phone, service, area…" aria-label="Search orders" />
+          <input id="gSearch" type="search" autocomplete="off" enterkeyhint="search" placeholder="Search all orders…   ( / )" aria-label="Search all orders" />
+        </label>
+        <div class="top-actions">
+          <span class="adm-live" id="liveState" data-state="wait"><span class="dot" aria-hidden="true"></span><span id="liveTxt">Connecting…</span></span>
+          <button type="button" class="icon-btn" id="alertsBtn" aria-pressed="false" hidden>
+            <i class="fa-solid fa-bell-slash" aria-hidden="true"></i><span>Alerts off</span>
+          </button>
+          <button type="button" class="icon-btn" id="installAppBtn" hidden>
+            <i class="fa-solid fa-mobile-screen" aria-hidden="true"></i><span class="pwa-label">Install</span>
+          </button>
         </div>
-        <div class="adm-chips" id="statusChips" role="group" aria-label="Filter by status"></div>
-        <div class="adm-chips" id="dateChips" role="group" aria-label="Filter by service date"></div>
-        <div class="adm-row">
-          <span class="adm-count" id="resultInfo"></span>
-          <label class="adm-sort"><span>Sort</span>
-            <select id="sortSel">
-              <option value="new">Newest first</option>
-              <option value="date">By service date</option>
-            </select>
-          </label>
-          <button type="button" class="adm-ibtn adm-light" id="exportBtn"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i><span>Export CSV</span></button>
+      </header>
+
+      <main class="content" id="content" tabindex="-1">
+
+        <!-- ───────────── Overview ───────────── -->
+        <section class="view" id="v-overview" aria-labelledby="pageTitle" hidden>
+          <div class="hello">
+            <div><h2 id="helloTitle">Hello</h2><p id="helloSub"></p></div>
+            <a class="btn-main" href="#/orders?status=pending" id="helloCta"><i class="fa-solid fa-bell" aria-hidden="true"></i><span>Review new orders</span></a>
+          </div>
+          <div class="kpis" id="kpis"></div>
+          <div class="grid-2">
+            <section class="card" aria-labelledby="ovActionT">
+              <div class="card-h"><h3 id="ovActionT"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Needs your action</h3><a href="#/orders?status=pending">See all</a></div>
+              <div class="mini-list" id="ovAction"></div>
+            </section>
+            <section class="card" aria-labelledby="ovTodayT">
+              <div class="card-h"><h3 id="ovTodayT"><i class="fa-regular fa-calendar" aria-hidden="true"></i> Today &amp; tomorrow</h3><a href="#/schedule">Open schedule</a></div>
+              <div class="mini-list" id="ovToday"></div>
+            </section>
+          </div>
+          <section class="card card-warn" id="ovOverdueCard" aria-labelledby="ovOverdueT" hidden>
+            <div class="card-h"><h3 id="ovOverdueT"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Overdue: the service date has passed</h3><a href="#/orders?date=overdue">See all</a></div>
+            <div class="mini-list" id="ovOverdue"></div>
+          </section>
+          <div class="grid-2">
+            <section class="card" aria-labelledby="ovChartT">
+              <div class="card-h"><h3 id="ovChartT"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> New bookings, last 14 days</h3></div>
+              <div class="bars" id="ovChart" role="img" aria-label="Bookings per day"></div>
+            </section>
+            <section class="card" aria-labelledby="ovSvcT">
+              <div class="card-h"><h3 id="ovSvcT"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i> Top services, last 30 days</h3></div>
+              <div class="hbars" id="ovServices"></div>
+            </section>
+          </div>
+        </section>
+
+        <!-- ───────────── Orders ───────────── -->
+        <section class="view" id="v-orders" aria-labelledby="pageTitle" hidden>
+          <div class="ord-toolbar">
+            <label class="adm-search" for="q">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="Search order ID, name, phone, service, area…" aria-label="Search orders" />
+            </label>
+            <button type="button" class="btn-line" id="filtersToggle" aria-expanded="false" aria-controls="filterPanel">
+              <i class="fa-solid fa-filter" aria-hidden="true"></i><span>Filters</span><b id="filterCount" hidden></b>
+            </button>
+            <button type="button" class="btn-line" id="exportBtn"><i class="fa-solid fa-file-arrow-down" aria-hidden="true"></i><span>Export CSV</span></button>
+          </div>
+
+          <div class="tabs" id="statusTabs" role="tablist" aria-label="Order status"></div>
+
+          <div class="filter-panel" id="filterPanel">
+            <label><span>Service date</span>
+              <select id="fDate">
+                <option value="any">Any date</option>
+                <option value="today">Today</option>
+                <option value="tomorrow">Tomorrow</option>
+                <option value="week">Next 7 days</option>
+                <option value="overdue">Overdue</option>
+                <option value="nodate">No date set</option>
+                <option value="range">Pick dates…</option>
+              </select>
+            </label>
+            <div class="range-box" id="rangeBox" hidden>
+              <label><span>From</span><input type="date" id="fFrom" /></label>
+              <label><span>To</span><input type="date" id="fTo" /></label>
+            </div>
+            <label><span>Service</span><select id="fService"></select></label>
+            <label><span>Booked via</span><select id="fChannel"></select></label>
+            <label><span>Assigned to</span><select id="fAssigned"></select></label>
+            <label><span>Sort by</span>
+              <select id="sortSel">
+                <option value="new">Newest first</option>
+                <option value="old">Oldest first</option>
+                <option value="date">Service date (soonest)</option>
+                <option value="amount">Highest amount</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="active-filters" id="activeFilters"></div>
+          <p class="result-info" id="resultInfo" aria-live="polite"></p>
+
+          <div class="ord-list" id="list"></div>
+          <div class="adm-more" id="moreWrap" hidden>
+            <button type="button" class="btn-line" id="moreBtn"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Load older orders</button>
+          </div>
+        </section>
+
+        <!-- ───────────── Schedule ───────────── -->
+        <section class="view" id="v-schedule" aria-labelledby="pageTitle" hidden>
+          <div class="day-strip" id="dayStrip" role="tablist" aria-label="Pick a day"></div>
+          <div class="day-head" id="dayHead"></div>
+          <div class="ord-list" id="dayList"></div>
+          <div id="schedExtra"></div>
+        </section>
+
+        <!-- ───────────── People (admins) ───────────── -->
+        <section class="view" id="v-people" aria-labelledby="pageTitle" hidden>
+          <div class="tabs" id="peopleTabs" role="tablist" aria-label="People">
+            <button type="button" role="tab" data-ptab="customers" class="tab">Customers <b id="cntCust">0</b></button>
+            <button type="button" role="tab" data-ptab="team" class="tab">Team <b id="cntTeam">0</b></button>
+          </div>
+
+          <div id="p-customers">
+            <div class="ord-toolbar">
+              <label class="adm-search" for="custQ">
+                <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="custQ" type="search" autocomplete="off" placeholder="Search customers" aria-label="Search customers by name, phone or email" />
+              </label>
+              <label class="sel-inline"><span class="sr-only">Sort customers</span>
+                <select id="custSort" aria-label="Sort customers">
+                  <option value="recent">Recent</option>
+                  <option value="orders">Most orders</option>
+                  <option value="spent">Top spend</option>
+                </select>
+              </label>
+            </div>
+            <p class="result-info" id="custInfo"></p>
+            <div class="cust-list" id="custList"></div>
+          </div>
+
+          <div id="p-team" hidden>
+            <section class="card" aria-labelledby="tvTeamTitle">
+              <div class="card-h"><h3 id="tvTeamTitle"><i class="fa-solid fa-user-group" aria-hidden="true"></i> Your team</h3></div>
+              <p class="tv-sub">Staff sign in on this page with their mobile number (an OTP is texted to them) and can work on orders. Only admins see People and Settings. Tap a person to change their name, number or role.</p>
+              <ul class="tv-list" id="teamList" aria-live="polite"></ul>
+              <form class="tv-form" id="staffForm" novalidate>
+                <h4>Add a staff member</h4>
+                <div class="form-2">
+                  <label for="stName"><span>Name</span>
+                    <input id="stName" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Ravi Kumar" /></label>
+                  <label for="stPhone"><span>Mobile number</span>
+                    <span class="g-phone"><span class="g-cc" aria-hidden="true">+91</span>
+                      <input id="stPhone" type="tel" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="98765 43210" /></span></label>
+                </div>
+                <p class="tv-msg" id="staffMsg" role="alert" aria-live="polite"></p>
+                <div class="btn-row">
+                  <button class="btn-main" id="staffAdd" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i><span>Add staff member</span></button>
+                  <a class="btn-line tv-invite" id="staffInvite" target="_blank" rel="noopener" hidden>
+                    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Send them the sign-in link</span></a>
+                </div>
+              </form>
+            </section>
+          </div>
+        </section>
+
+        <!-- ───────────── Settings ───────────── -->
+        <section class="view" id="v-settings" aria-labelledby="pageTitle" hidden>
+          <div class="grid-2 grid-top">
+            <section class="card" aria-labelledby="stDeviceT">
+              <div class="card-h"><h3 id="stDeviceT"><i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i> This device</h3></div>
+              <div class="set-row">
+                <div><strong>New-order alerts</strong><small>Sound and a notification when a booking arrives. Keep the app open or installed.</small></div>
+                <button type="button" class="switch" id="alertsSwitch" role="switch" aria-checked="false" aria-label="New-order alerts"><i></i></button>
+              </div>
+              <div class="set-row">
+                <div><strong>Keep screen awake</strong><small>For a counter tablet that should always show live orders.</small></div>
+                <button type="button" class="switch" id="awakeBtn" role="switch" aria-checked="false" aria-label="Keep screen awake"><i></i><span class="sr-only">Keep screen awake</span></button>
+              </div>
+              <div class="set-row">
+                <div><strong>Signed in as</strong><small id="setWho"></small></div>
+                <button type="button" class="btn-line" id="signOutBtn2"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i><span>Sign out</span></button>
+              </div>
+            </section>
+
+            <section class="card" aria-labelledby="tvMailTitle" data-admin>
+              <div class="card-h"><h3 id="tvMailTitle"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Booking emails</h3></div>
+              <p class="tv-sub">Every new booking is emailed to these addresses (up to 5).</p>
+              <ul class="tv-list" id="emailList" aria-live="polite"></ul>
+              <form class="tv-form tv-inline" id="emailForm" novalidate>
+                <label for="emNew"><span>Add an email address</span>
+                  <input id="emNew" type="email" maxlength="200" autocomplete="off" placeholder="name@gmail.com" /></label>
+                <button class="btn-line" id="emAdd" type="submit">Add</button>
+              </form>
+              <div class="tv-toggles">
+                <label class="tv-toggle"><input type="checkbox" id="tgOwner" /><span>Email these addresses when a new booking arrives</span></label>
+                <label class="tv-toggle"><input type="checkbox" id="tgCustomer" /><span>Email customers their booking confirmation and status updates</span></label>
+              </div>
+              <p class="tv-msg" id="alertMsg" role="alert" aria-live="polite"></p>
+              <button class="btn-main" id="alertSave" type="button">Save email settings</button>
+            </section>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Phone: bottom tabs -->
+    <nav class="tabbar" id="tabbar" aria-label="Pages">
+      <a href="#/overview" data-nav="overview"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><span>Overview</span></a>
+      <a href="#/orders" data-nav="orders"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Orders</span><b class="nav-badge" data-badge-new hidden></b></a>
+      <a href="#/schedule" data-nav="schedule"><i class="fa-regular fa-calendar-check" aria-hidden="true"></i><span>Schedule</span></a>
+      <a href="#/people" data-nav="people" data-admin><i class="fa-solid fa-user-group" aria-hidden="true"></i><span>People</span></a>
+      <a href="#/settings" data-nav="settings"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Settings</span></a>
+    </nav>
+  </div>
+
+  <!-- Order details: a side panel on desktop, a sheet on phones -->
+  <div class="drawer-wrap" id="drawerWrap" hidden>
+    <div class="drawer-bg" data-close></div>
+    <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" tabindex="-1"></aside>
+  </div>
+
+  <!-- Edit a team member (admins). Sits below the "are you sure?" box so that always shows on top. -->
+  <div class="dlg-wrap" id="editWrap" hidden>
+    <div class="dlg dlg-edit" role="dialog" aria-modal="true" aria-labelledby="edTitle">
+      <div class="ed-head">
+        <span class="avatar" id="edAv" aria-hidden="true"></span>
+        <div class="ed-t"><h3 id="edTitle">Edit team member</h3><p id="edSub"></p></div>
+        <button type="button" class="ia" id="edClose" aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      </div>
+      <form class="ed-form" id="editForm" novalidate>
+        <label for="edName"><span>Name</span>
+          <input id="edName" type="text" maxlength="60" autocomplete="off" /></label>
+        <label for="edPhone"><span>Mobile number</span>
+          <span class="g-phone"><span class="g-cc" aria-hidden="true">+91</span>
+            <input id="edPhone" type="tel" inputmode="numeric" maxlength="14" autocomplete="off" aria-describedby="edPhoneHint" /></span>
+          <small class="ed-hint" id="edPhoneHint"></small></label>
+        <a class="ed-invite" id="edInvite" target="_blank" rel="noopener" hidden>
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Send them the sign-in link on WhatsApp</span></a>
+        <fieldset class="ed-role" id="edRoleBox">
+          <legend>Role</legend>
+          <div class="ed-opts">
+            <label class="ed-opt"><input type="radio" name="edRole" value="staff" />
+              <span class="ed-opt-t"><strong>Staff</strong><small>Works on orders only</small></span></label>
+            <label class="ed-opt"><input type="radio" name="edRole" value="admin" />
+              <span class="ed-opt-t"><strong>Admin</strong><small>Full access, including the team</small></span></label>
+          </div>
+        </fieldset>
+        <p class="tv-msg" id="edMsg" role="alert" aria-live="polite"></p>
+        <div class="dlg-btns">
+          <button type="button" class="btn-line" id="edCancel">Cancel</button>
+          <button type="submit" class="btn-main" id="edSave">Save changes</button>
         </div>
-      </div>
+        <button type="button" class="btn-line danger ed-remove" id="edRemove"><i class="fa-solid fa-user-minus" aria-hidden="true"></i><span>Remove from the team</span></button>
+      </form>
+    </div>
+  </div>
 
-      <div class="adm-list" id="list"></div>
-      <div class="adm-more" id="moreWrap" hidden>
-        <button type="button" class="a-btn a-ghost" id="moreBtn"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Load older orders</button>
+  <!-- A friendly "are you sure?" instead of the browser's plain pop-up -->
+  <div class="dlg-wrap" id="dlgWrap" hidden>
+    <div class="dlg" role="alertdialog" aria-modal="true" aria-labelledby="dlgTitle" aria-describedby="dlgText">
+      <h3 id="dlgTitle"></h3>
+      <p id="dlgText"></p>
+      <div class="dlg-btns">
+        <button type="button" class="btn-line" id="dlgNo"></button>
+        <button type="button" class="btn-main" id="dlgYes"></button>
       </div>
-    </section>
-
-    <!-- Team & alerts: admins only (the menu entry is hidden for staff, and the database refuses staff anyway) -->
-    <section id="teamView" class="tv" hidden>
-      <div class="tv-head">
-        <button type="button" class="adm-ibtn adm-light" id="teamBack"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i><span>Orders</span></button>
-        <h1>Team &amp; alerts</h1>
-      </div>
-
-      <div class="tv-card" aria-labelledby="tvTeamTitle">
-        <h2 id="tvTeamTitle"><i class="fa-solid fa-user-group" aria-hidden="true"></i> Your team</h2>
-        <p class="tv-sub">Staff sign in on this page with their mobile number (an OTP is texted to them) and can work on orders. Only admins can see this screen.</p>
-        <ul class="tv-list" id="teamList" aria-live="polite"></ul>
-
-        <form class="tv-form" id="staffForm" novalidate>
-          <h3>Add a staff member</h3>
-          <label for="stName"><span>Name</span>
-            <input id="stName" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Ravi Kumar" />
-          </label>
-          <label for="stPhone"><span>Mobile number</span>
-            <span class="g-phone"><span class="g-cc" aria-hidden="true">+91</span>
-              <input id="stPhone" type="tel" inputmode="numeric" maxlength="14" autocomplete="off" placeholder="98765 43210" /></span>
-          </label>
-          <p class="tv-msg" id="staffMsg" role="alert" aria-live="polite"></p>
-          <button class="a-btn a-primary" id="staffAdd" type="submit"><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Add staff member</button>
-          <a class="a-btn a-ghost tv-invite" id="staffInvite" target="_blank" rel="noopener" hidden>
-            <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Send them the sign-in link on WhatsApp</a>
-        </form>
-      </div>
-
-      <div class="tv-card" aria-labelledby="tvMailTitle">
-        <h2 id="tvMailTitle"><i class="fa-solid fa-envelope-open-text" aria-hidden="true"></i> Booking emails</h2>
-        <p class="tv-sub">Every new booking is emailed to these addresses (up to 5).</p>
-        <ul class="tv-list" id="emailList" aria-live="polite"></ul>
-        <form class="tv-form tv-inline" id="emailForm" novalidate>
-          <label for="emNew"><span>Add an email address</span>
-            <input id="emNew" type="email" maxlength="200" autocomplete="off" placeholder="name@gmail.com" />
-          </label>
-          <button class="a-btn a-ghost" id="emAdd" type="submit">Add</button>
-        </form>
-        <div class="tv-toggles">
-          <label class="tv-toggle"><input type="checkbox" id="tgOwner" /><span>Email these addresses when a new booking arrives</span></label>
-          <label class="tv-toggle"><input type="checkbox" id="tgCustomer" /><span>Email customers their booking confirmation and status updates</span></label>
-        </div>
-        <p class="tv-msg" id="alertMsg" role="alert" aria-live="polite"></p>
-        <button class="a-btn a-primary" id="alertSave" type="button">Save alert settings</button>
-      </div>
-    </section>
-  </main>
+    </div>
+  </div>
 
   <div class="adm-toast" id="admToast" role="status" aria-live="polite"></div>
 
-  <script src="../js/pwa.js?v=20261019a" defer></script>
-  <script type="module" src="../js/admin.js?v=20261019a"></script>
+  <script src="../js/pwa.js?v=20261020a" defer></script>
+  <script type="module" src="../js/admin.js?v=20261020a"></script>
 </body>
 </html>

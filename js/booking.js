@@ -9,10 +9,10 @@
 // Every import carries the same ?v= as the HTML. A module imported under two
 // different URLs runs twice — that is how auth.js ended up with doubled login
 // handlers (two OTP SMS per tap). Keep all ?v= values identical on deploy.
-import { auth, db, collection, doc, setDoc, getDoc, serverTimestamp, signOut } from './firebase-config.js?v=20261019a';
-import { showToast } from './auth.js?v=20261019a';
-import { makeOrderId } from './order-id.js?v=20261019a';
-import { identity, fmtMobile, mountPhoneVerify, mountEmailLogin, cancelPhone } from './identity.js?v=20261019a';
+import { auth, db, collection, doc, setDoc, getDoc, serverTimestamp, signOut } from './firebase-config.js?v=20261020a';
+import { showToast } from './auth.js?v=20261020a';
+import { makeOrderId } from './order-id.js?v=20261020a';
+import { identity, fmtMobile, mountPhoneVerify, mountEmailLogin, cancelPhone } from './identity.js?v=20261020a';
 
 // ─── Service Catalog ──────────────────────────────────────────────────────────
 

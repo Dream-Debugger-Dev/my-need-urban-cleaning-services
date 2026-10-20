@@ -42,7 +42,7 @@ js/
   pwa.js                PWA install prompt
 pages/
   account.html          Customer order tracking page
-  admin.html            Live orders admin dashboard
+  admin.html            Admin app (overview, orders, schedule, people, settings)
   terms.html
   privacy.html
 assets/
