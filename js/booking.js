@@ -9,10 +9,11 @@
 // Every import carries the same ?v= as the HTML. A module imported under two
 // different URLs runs twice — that is how auth.js ended up with doubled login
 // handlers (two OTP SMS per tap). Keep all ?v= values identical on deploy.
-import { auth, db, collection, doc, setDoc, getDoc, serverTimestamp, signOut } from './firebase-config.js?v=20261020a';
-import { showToast } from './auth.js?v=20261020a';
-import { makeOrderId } from './order-id.js?v=20261020a';
-import { identity, fmtMobile, mountPhoneVerify, mountEmailLogin, cancelPhone } from './identity.js?v=20261020a';
+import { auth, db, collection, doc, setDoc, getDoc, serverTimestamp, signOut } from './firebase-config.js?v=20261026a';
+import { showToast } from './auth.js?v=20261026a';
+import { makeOrderId } from './order-id.js?v=20261026a';
+import { identity, fmtMobile, mountPhoneVerify, mountEmailLogin, cancelPhone } from './identity.js?v=20261026a';
+import { pauseOn, isPausedId, pausedTerm, showPauseNotice } from './festive-pause.js?v=20261026a';
 
 // ─── Service Catalog ──────────────────────────────────────────────────────────
 
@@ -1109,6 +1110,8 @@ async function saveBooking({ orderId, ref }) {
  * opts.focusSearch focuses the search box (used by the "Search" buttons).
  */
 export function openBooking(serviceId, opts = {}) {
+  // The festive pause: a service we are not booking right now opens the notice, not the sheet
+  if (serviceId && festivePaused(serviceId)) { explainPause(serviceId); return; }
   _step = 0;
   _selectedService = null;
   _quantity = 1;
@@ -1164,10 +1167,27 @@ function closeBooking() {
   cancelPhone();                 // forget a half-finished OTP and remove its reCAPTCHA badge
 }
 
+// ─── Festive pause (see js/festive-pause.js and js/diwali-boot.js) ────────────
+/** Is this service (any level of the catalog, or a marketing alias) paused right now? */
+function festivePaused(id) {
+  if (!id || !pauseOn()) return false;
+  const alias = SERVICE_ALIASES[id];
+  const trail = servicePath(alias ? alias.target : id);
+  return !!trail && isPausedId(trail[0].id);
+}
+
+/** Tell the customer, kindly, why this one can't be booked now. */
+function explainPause(id) {
+  const alias = SERVICE_ALIASES[id];
+  const trail = servicePath(alias ? alias.target : id);
+  showPauseNotice({ title: trail ? trail[0].title : 'This service', fallback: showToast });
+}
+
 /** Navigates to any catalog node — used by search results and root tiles. */
 function goToNode(id) {
   const node = findService(id, SERVICE_CATALOG);
   if (!node) return;
+  if (festivePaused(id)) { explainPause(id); return; }
   if (node.isLeaf) {
     _selectedService = node;
     _currentCatalog = parentOf(node.id) || null;
@@ -1268,7 +1288,12 @@ function renderRootHTML() {
     <div id="svcRoot" ${q ? 'hidden' : ''}>
       <p class="root-hint">Choose a category</p>
       <div class="root-grid">
-        ${SERVICE_CATALOG.map(n => `
+        ${SERVICE_CATALOG.map(n => festivePaused(n.id) ? `
+          <button type="button" class="root-tile is-paused" data-id="${n.id}" aria-label="${escHtml(n.title)}: paused for the festive season">
+            <span class="rt-icon"><i class="fa-solid ${n.icon}"></i></span>
+            <span class="rt-title">${escHtml(n.title)}</span>
+            <span class="rt-from is-paused">Paused · festive season</span>
+          </button>` : `
           <button type="button" class="root-tile" data-id="${n.id}">
             <span class="rt-icon"><i class="fa-solid ${n.icon}"></i></span>
             <span class="rt-title">${escHtml(n.title)}</span>
@@ -1292,6 +1317,14 @@ function resultPriceLabel(n) {
 
 function renderResultsHTML(q) {
   const hits = searchCatalog(q);
+  // "balcony" / "single room": paused, and not a service of its own on the site, so say so
+  const pausedWord = pausedTerm(q);
+  const pausedNote = pausedWord ? `
+      <div class="sr-paused" role="note">
+        <i class="fa-solid fa-circle-pause" aria-hidden="true"></i>
+        <span><strong>${escHtml(pausedWord)}</strong> is paused for the festive season. A full-house deep clean includes the balcony and bathrooms.</span>
+      </div>` : '';
+  if (!hits.length && pausedNote) return pausedNote;
   if (!hits.length) {
     const ask = encodeURIComponent(`Hi MyNeedUrban, do you offer "${q}" cleaning?`);
     return `
@@ -1302,18 +1335,19 @@ function renderResultsHTML(q) {
           <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${ask}" target="_blank" rel="noopener">ask us on WhatsApp</a>.</small>
       </div>`;
   }
-  return hits.map(h => {
+  return pausedNote + hits.map(h => {
     const crumb = h.path.length > 1
       ? h.path.slice(0, -1).map(p => p.title).join(' › ')
       : (h.node.subtitle || '');
+    const paused = festivePaused(h.node.id);
     return `
-      <button type="button" class="sr-item" role="listitem" data-id="${h.node.id}">
+      <button type="button" class="sr-item${paused ? ' is-paused' : ''}" role="listitem" data-id="${h.node.id}">
         <span class="sr-icon"><i class="fa-solid ${h.node.icon}"></i></span>
         <span class="sr-text">
           <strong>${escHtml(h.node.title)}</strong>
           ${crumb ? `<small>${escHtml(crumb)}</small>` : ''}
         </span>
-        <span class="sr-price">${escHtml(resultPriceLabel(h.node))}</span>
+        <span class="sr-price">${paused ? 'Paused' : escHtml(resultPriceLabel(h.node))}</span>
       </button>`;
   }).join('');
 }
@@ -1786,6 +1820,8 @@ const SAVE_TIMEOUT_MS = 25000;
  */
 async function confirmBooking() {
   if (_saving) return;
+  // Last line of defence for the festive pause (the sheet was opened before the pause began, or from a stale page)
+  if (_selectedService && festivePaused(_selectedService.id)) { explainPause(_selectedService.id); return; }
   const who = identity();
   if (!who.signedIn || !who.phone) {
     _verify = true;
@@ -1818,6 +1854,8 @@ async function confirmBooking() {
     _attempt = null;
     _verify = false;
     showBookingConfirmed(attempt.orderId);
+    // Lets a seasonal layer celebrate (js/diwali.js); nothing else listens, and nothing is sent
+    document.dispatchEvent(new CustomEvent('mnu:booked', { detail: { orderId: attempt.orderId } }));
   } else {
     showSaveFailed(slow);
   }
@@ -1946,6 +1984,8 @@ function attachSummaryEvents(body) {
   // Proceed: a customer who is already logged in with a verified number is
   // confirmed straight away; everyone else verifies their number first.
   body.querySelector('#ctaProceed')?.addEventListener('click', () => {
+    // Festive pause: don't text an OTP for a booking that can't be taken
+    if (_selectedService && festivePaused(_selectedService.id)) { explainPause(_selectedService.id); return; }
     const who = identity();
     if (who.signedIn && who.phone) { confirmBooking(); return; }
     _verify = true;

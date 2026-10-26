@@ -5,10 +5,11 @@
   <!-- Security: only scripts from this site, Firebase (gstatic) and Google reCAPTCHA may run. Injected script tags and inline event handlers are blocked. See SECURITY.md. -->
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://www.google.com/recaptcha/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://www.google.com https://www.gstatic.com; frame-src https://www.google.com https://recaptcha.google.com https://myneedurban-ec1c9.firebaseapp.com; worker-src 'self'; manifest-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests" />
   <meta name="referrer" content="strict-origin-when-cross-origin" />
-  <!-- Festival season marker (Navratri · Bathukamma · Dasara 2026). Runs before
-       first paint so the festive card's space is held open from the start; it
-       does nothing outside 10-21 Oct 2026. Remove with js/festival.js. -->
-  <script src="js/festival-boot.js?v=20261020a"></script>
+  <!-- Diwali 2026 season switch. Runs before the first paint so the festive
+       theme is there from the first frame. It does nothing outside 20 Oct - 11 Nov
+       2026, so no clean-up deploy is needed. It is also the one place the dates and
+       the paused services live. See WORKING.md ("Diwali 2026"). -->
+  <script src="js/diwali-boot.js?v=20261026a"></script>
   <!-- viewport-fit=cover lets the bottom tab bar sit under the iPhone home
        indicator; env(safe-area-inset-*) in css/app.css keeps content clear of it. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -39,11 +40,13 @@
        CSS/JS — here, in pages/*.html, in every `import ... from './x.js?v='`
        inside js/, and VERSION in sw.js. All must be the SAME value: a module
        imported under two URLs runs twice. The QA check enforces this. -->
-  <link rel="stylesheet" href="css/style.css?v=20261020a" />
-  <link rel="stylesheet" href="css/animations.css?v=20261020a" />
+  <link rel="stylesheet" href="css/style.css?v=20261026a" />
+  <link rel="stylesheet" href="css/animations.css?v=20261026a" />
   <!-- App layer: bottom tab bar, menu sheet, discovery grid, mobile booking
        sheet. Loaded last so it can refine style.css without editing it. -->
-  <link rel="stylesheet" href="css/app.css?v=20261020a" />
+  <link rel="stylesheet" href="css/app.css?v=20261026a" />
+  <!-- Diwali 2026 theme: every rule is scoped to <html class="dw">, which only exists in season -->
+  <link rel="stylesheet" href="css/diwali.css?v=20261026a" />
 
   <script type="application/ld+json">
   {
@@ -61,6 +64,15 @@
   </script>
 </head>
 <body data-page="home">
+
+  <!-- ═══ DIWALI 2026 — static markup, marked class="dw-only". css/diwali.css shows it only in season.
+       To take the theme out for good: delete every .dw-only element, the diwali.css <link>,
+       diwali-boot.js, js/diwali*.js, js/festive-pause.js and the pause hooks in js/booking.js. ═══ -->
+  <div class="dw-bar dw-only" id="dwBar">
+    <span class="dw-bar-msg"><i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i><strong>Happy Diwali</strong> from MyNeedUrban</span>
+    <span class="dw-bar-count" id="dwBarCount">Diwali · Sun 8 Nov</span>
+    <a class="dw-bar-link" href="#festive-notice">Festive notice <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+  </div>
 
   <!-- HEADER -->
   <header class="site-header" id="siteHeader">
@@ -128,14 +140,30 @@
         </button>
       </div>
     </div>
+    <!-- Diwali: a string of fairy lights hanging from the header (decoration only) -->
+    <div class="dw-lights dw-only" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
   </header>
 
   <!-- HERO -->
   <section id="home" class="hero">
     <div class="hero-bg"></div>
 
+    <!-- Diwali: night sky, lantern photo, rangoli, fireworks canvas, hanging lanterns (decoration only; filled by js/diwali.js) -->
+    <div class="dw-hero-fx dw-only" aria-hidden="true">
+      <div class="dw-photo"></div>
+      <div class="dw-sky"></div>
+      <div class="dw-rangoli" id="dwRangoli"></div>
+      <canvas class="dw-canvas" id="dwHeroCanvas"></canvas>
+      <div class="dw-sl-layer" id="dwSkyLanterns"></div>
+      <div class="dw-hang dw-hang--1" data-hang="1"></div>
+      <div class="dw-hang dw-hang--2" data-hang="2"></div>
+      <div class="dw-hang dw-hang--3" data-hang="3"></div>
+      <div class="dw-hang dw-hang--4" data-hang="4"></div>
+    </div>
+
     <div class="container hero-grid">
       <div class="hero-copy reveal">
+        <p class="dw-kicker dw-only"><span class="dw-script" id="dwKickerTitle">Happy Diwali</span><span class="dw-kicker-sub" id="dwKickerSub">Let's celebrate with clean spaces</span></p>
         <span class="eyebrow"><i class="fa-solid fa-leaf"></i> Verified · Eco-friendly · Trusted</span>
         <h1>A Cleaner Home,<br /><span class="accent">A Happier You.</span></h1>
 
@@ -178,9 +206,93 @@
     </div>
   </section>
 
-  <!-- Where the seasonal card goes (js/festival.js). Empty and invisible except
-       on festival days, when css/app.css reserves its height up front. -->
-  <div class="fest-slot" id="festSlot"></div>
+  <!-- DIWALI · countdown band, the festive-season notice and the full-house package.
+       All plain HTML: the notice is readable even if scripts fail. -->
+  <section class="dw-notice dw-only" id="festive-notice" aria-labelledby="dwNoticeTitle">
+    <div class="container">
+
+      <div class="dw-band-in" id="dwBand">
+        <div class="dw-ledge" id="dwLedge" role="group" aria-label="Light the diyas"></div>
+
+        <div class="dw-count" id="dwCount">
+          <p class="dw-count-label" id="dwCountLabel">Diwali · Sunday 8 November</p>
+          <div class="dw-count-grid" role="timer" aria-label="Time left until Diwali">
+            <div class="dw-unit"><b id="dwD">00</b><small>Days</small></div>
+            <span class="dw-sep" aria-hidden="true">:</span>
+            <div class="dw-unit"><b id="dwH">00</b><small>Hours</small></div>
+            <span class="dw-sep" aria-hidden="true">:</span>
+            <div class="dw-unit"><b id="dwM">00</b><small>Mins</small></div>
+            <span class="dw-sep" aria-hidden="true">:</span>
+            <div class="dw-unit"><b id="dwS">00</b><small>Secs</small></div>
+          </div>
+          <p class="dw-count-done dw-script" id="dwCountDone">Happy Diwali!</p>
+          <p class="dw-count-note" id="dwCountNote">Get your home Diwali-ready: book your deep clean before Dhanteras (Fri 6 Nov).</p>
+        </div>
+
+        <ol class="dw-stages" id="dwStages" aria-label="The days of Diwali">
+          <li class="dw-stage" data-date="2026-11-06"><b>Dhanteras</b><small>Fri 6 Nov</small></li>
+          <li class="dw-stage" data-date="2026-11-07"><b>Choti Diwali</b><small>Sat 7 Nov</small></li>
+          <li class="dw-stage is-main" data-date="2026-11-08"><b>Diwali</b><small>Sun 8 Nov</small></li>
+        </ol>
+
+        <div class="dw-band-cta">
+          <button type="button" class="btn dw-gold-btn btn-lg" data-book="home"><i class="fa-solid fa-broom" aria-hidden="true"></i> Book Home Deep Cleaning</button>
+          <button type="button" class="btn dw-ghost-btn btn-lg" data-dw-card><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Make a Diwali greeting</button>
+        </div>
+      </div>
+
+      <div class="dw-notice-grid">
+        <article class="dw-notice-card">
+          <header class="dw-notice-head">
+            <span class="dw-notice-flame" data-art="flame" aria-hidden="true"></span>
+            <div>
+              <p class="dw-notice-kicker">Important notice</p>
+              <h2 id="dwNoticeTitle">Festive Season</h2>
+            </div>
+          </header>
+          <div class="dw-notice-lantern" data-art="lantern" aria-hidden="true"></div>
+          <div class="dw-notice-body">
+            <p>During the festive season, we are not accepting bookings for small cleaning services, including:</p>
+            <ul class="dw-paused-list">
+              <li><span class="dw-x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>Washroom Cleaning</li>
+              <li><span class="dw-x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>Balcony Cleaning</li>
+              <li><span class="dw-x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>Sofa Cleaning</li>
+              <li><span class="dw-x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>Carpet Cleaning</li>
+              <li><span class="dw-x" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>Single Room Cleaning</li>
+            </ul>
+            <p class="dw-thanks dw-script">Thank you for your understanding.</p>
+            <div class="dw-notice-deco" data-art="deco" aria-hidden="true"></div>
+          </div>
+        </article>
+
+        <article class="dw-pack" aria-labelledby="dwPackTitle">
+          <p class="dw-pack-kicker">Still booking this Diwali</p>
+          <h3 id="dwPackTitle">Full House Cleaning Package</h3>
+          <p class="dw-pack-sub">Complete home cleaning · Fresh · Hygienic · Safe</p>
+          <ul class="dw-pack-grid">
+            <li><i class="fa-solid fa-couch" aria-hidden="true"></i>Living Room<small>Dust free &amp; fresh</small></li>
+            <li><i class="fa-solid fa-bed" aria-hidden="true"></i>Bedroom<small>Clean &amp; comfortable</small></li>
+            <li><i class="fa-solid fa-kitchen-set" aria-hidden="true"></i>Kitchen<small>Hygienic &amp; shiny</small></li>
+            <li><i class="fa-solid fa-bath" aria-hidden="true"></i>Bathroom<small>Deep clean &amp; fresh</small></li>
+            <li><i class="fa-solid fa-sun" aria-hidden="true"></i>Balcony<small>Clean &amp; bright</small></li>
+            <li><i class="fa-solid fa-window-maximize" aria-hidden="true"></i>Windows &amp; Glass<small>Spotless shine</small></li>
+            <li><i class="fa-solid fa-door-open" aria-hidden="true"></i>Doors &amp; Frames<small>Clean &amp; neat</small></li>
+            <li><i class="fa-solid fa-fan" aria-hidden="true"></i>Fans &amp; Lights<small>Dust free &amp; bright</small></li>
+          </ul>
+          <ul class="dw-trust">
+            <li><i class="fa-solid fa-leaf" aria-hidden="true"></i>Eco-friendly products</li>
+            <li><i class="fa-solid fa-shield-heart" aria-hidden="true"></i>Safe for kids &amp; pets</li>
+            <li><i class="fa-solid fa-user-check" aria-hidden="true"></i>Trained staff</li>
+            <li><i class="fa-solid fa-gears" aria-hidden="true"></i>Advanced equipment</li>
+          </ul>
+          <p class="dw-pack-note"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Bathrooms and balconies are cleaned as part of the full-house package, so you don't need to book them separately.</p>
+          <div class="dw-pack-cta">
+            <button type="button" class="btn dw-gold-btn btn-lg" data-book="home"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Book Full House Cleaning</button>
+            <a class="btn dw-ghost-btn btn-lg" href="tel:+919613304724" aria-label="Call 96133 04724"><i class="fa-solid fa-phone" aria-hidden="true"></i> Call<span class="lg-only">&nbsp;96133 04724</span></a>
+          </div>
+        </article></div>
+    </div>
+  </section>
 
   <!-- SERVICES — straight after the hero: customers told us the services were
        hard to find. Each card opens the booking sheet at that category.
@@ -351,6 +463,31 @@
         <div class="why-card reveal"><i class="fa-solid fa-sack-dollar"></i><h4>Fair Pricing</h4><p>No hidden fees. What you see is what you pay.</p></div>
         <div class="why-card reveal"><i class="fa-solid fa-rotate"></i><h4>Re-clean Promise</h4><p>Not happy? We come back &amp; re-clean free.</p></div>
         <div class="why-card reveal"><i class="fa-solid fa-headset"></i><h4>Friendly Support</h4><p>Real humans on WhatsApp &amp; call, any day.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DIWALI · festival photos (stock, credited in the footer). Kept apart from "Our Work",
+       which is only ever our own jobs. -->
+  <section id="diwali-moments" class="section dw-moments dw-only" aria-labelledby="dwMomentsTitle">
+    <div class="container">
+      <div class="section-head reveal">
+        <span class="eyebrow"><i class="fa-solid fa-fire-flame-curved" aria-hidden="true"></i> Festival of lights</span>
+        <h2 id="dwMomentsTitle">A clean home is the <span class="accent">first diya</span> of Diwali.</h2>
+        <p>Light the lamps, lay the rangoli, welcome the family. Leave the cleaning to us and enjoy every glowing moment.</p>
+      </div>
+      <div class="dw-mosaic">
+        <figure class="dw-m dw-m--a"><img src="assets/images/diwali/rangoli-ring.webp" alt="A ring of lit diyas around a marigold rangoli on a stone floor at night" width="1200" height="800" loading="lazy" decoding="async" /><figcaption>Rangoli &amp; diyas<small>A spotless doorway welcomes the festival</small></figcaption></figure>
+        <figure class="dw-m dw-m--b"><img src="assets/images/diwali/home-rangoli.webp" alt="A bright home with a rangoli and diyas glowing on a clean floor" width="1024" height="768" loading="lazy" decoding="async" /><figcaption>Home glow<small>Shining floors catch every flame</small></figcaption></figure>
+        <figure class="dw-m dw-m--c"><img src="assets/images/diwali/diya-flower.webp" alt="A flower-shaped brass diya with a bright flame" width="900" height="852" loading="lazy" decoding="async" /><figcaption>One small flame<small>Light up the whole house</small></figcaption></figure>
+        <figure class="dw-m dw-m--d"><img src="assets/images/diwali/diyas-grid.webp" alt="Rows of oil lamps with flickering flames seen from above" width="760" height="1013" loading="lazy" decoding="async" /><figcaption>A field of flames</figcaption></figure>
+        <figure class="dw-m dw-m--e"><img src="assets/images/diwali/rangoli-fire.webp" alt="A rangoli lit by a ring of diyas, glowing red and gold" width="1024" height="768" loading="lazy" decoding="async" /><figcaption>Gold &amp; crimson</figcaption></figure>
+        <figure class="dw-m dw-m--f"><img src="assets/images/diwali/rangoli-lamp.webp" alt="A brass lamp standing in a flower rangoli of pink and yellow petals" width="1024" height="768" loading="lazy" decoding="async" /><figcaption>Petals &amp; lamp</figcaption></figure>
+        <figure class="dw-m dw-m--g"><img src="assets/images/diwali/diya-marigold.webp" alt="A lit clay diya resting among orange marigold flowers" width="1100" height="786" loading="lazy" decoding="async" /><figcaption>Marigold &amp; flame</figcaption></figure>
+      </div>
+      <div class="dw-moments-cta">
+        <button type="button" class="btn dw-gold-btn btn-lg" data-book="home"><i class="fa-solid fa-broom" aria-hidden="true"></i> Book Home Deep Cleaning</button>
+        <button type="button" class="btn dw-ghost-btn btn-lg" data-dw-card><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Make a Diwali greeting</button>
       </div>
     </div>
   </section>
@@ -715,6 +852,19 @@
 
   <!-- FOOTER -->
   <footer class="footer">
+    <div class="container dw-only">
+      <div class="dw-foot">
+        <div class="dw-foot-photo" role="img" aria-label="A glowing paper sky lantern rising into the night"></div>
+        <div class="dw-foot-copy">
+          <h3 class="dw-script">Happy Diwali</h3>
+          <p>Wishing you and your family light, joy and prosperity. Thank you for letting us be part of your festive season. Clean home, happy home.</p>
+          <div class="dw-foot-btns">
+            <button type="button" class="btn dw-gold-btn" data-dw-card><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> Make a Diwali greeting</button>
+            <a class="btn dw-ghost-btn" id="dwShare" href="https://wa.me/?text=%F0%9F%AA%94%20Happy%20Diwali!%20Wishing%20you%20light%2C%20joy%20and%20a%20sparkling%20clean%20home.%20From%20MyNeedUrban%20Cleaning%20Services%2C%20Hyderabad%20https%3A%2F%2Fwww.myneedurban.com" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Share the wishes</a>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="container footer-grid">
       <div>
         <a href="#home" class="brand brand-dark">
@@ -764,6 +914,16 @@
       <span>© <span id="yr"></span> MyNeedUrban Cleaning Services. All rights reserved.</span>
       <span><a href="pages/privacy.html">Privacy</a> · <a href="pages/terms.html">Terms</a></span>
     </div>
+    <div class="container dw-only">
+      <p class="dw-credits">Festive photos: public domain (CC0) by Rudolph A. Furtado, Anis and rawpixel; and licensed
+        <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a>:
+        <a href="https://commons.wikimedia.org/w/index.php?curid=29961576" target="_blank" rel="noopener">&ldquo;Diya set in a rangoli&rdquo;</a> by siddarth varanasi,
+        <a href="https://www.flickr.com/photos/19364701@N00/2982998577" target="_blank" rel="noopener">&ldquo;The Rangoli of Lights&rdquo;</a> and
+        <a href="https://www.flickr.com/photos/19364701@N00/4027594936" target="_blank" rel="noopener">&ldquo;Gets better every year&rdquo;</a> by Subharnab,
+        <a href="https://www.flickr.com/photos/10934572@N00/3449065933" target="_blank" rel="noopener">&ldquo;Orange Glow&rdquo;</a> by Sudhamshu,
+        <a href="https://www.flickr.com/photos/56796376@N00/2230540444" target="_blank" rel="noopener">&ldquo;India - Sights &amp; Culture&rdquo;</a> by mckaysavage.
+        Resized for the web.</p>
+    </div>
   </footer>
 
   <!-- Floating WhatsApp -->
@@ -771,20 +931,53 @@
     <i class="fa-brands fa-whatsapp"></i>
   </a>
 
-  <script src="js/main.js?v=20261020a"></script>
-  <script src="js/pwa.js?v=20261020a" defer></script>
-  <script src="js/slider.js?v=20261020a"></script>
-  <script type="module" src="js/form.js?v=20261020a"></script>
-  <script type="module" src="js/auth.js?v=20261020a"></script>
-  <script type="module" src="js/booking.js?v=20261020a"></script>
+  <script src="js/main.js?v=20261026a"></script>
+  <script src="js/pwa.js?v=20261026a" defer></script>
+  <script src="js/slider.js?v=20261026a"></script>
+  <script type="module" src="js/form.js?v=20261026a"></script>
+  <script type="module" src="js/auth.js?v=20261026a"></script>
+  <script type="module" src="js/booking.js?v=20261026a"></script>
   <!-- Bottom tab bar, Menu sheet and phone header icons (<= 768px) -->
-  <script type="module" src="js/app-shell.js?v=20261020a"></script>
+  <script type="module" src="js/app-shell.js?v=20261026a"></script>
 
-  <!-- Seasonal layer (Navratri · Bathukamma · Dasara 2026). It switches itself
-       on for 10-21 Oct 2026 and does nothing on any other day, so it needs no
-       clean-up deploy. To remove it for good, delete this line and the
-       festival.* files. Preview a day with ?fest=2026-10-19, off with ?fest=off. -->
-  <script type="module" src="js/festival.js?v=20261020a"></script>
+  <!-- Diwali 2026 layer: countdown, lanterns, fireworks, diyas, notice, greeting card.
+       Switches itself on for 20 Oct - 11 Nov 2026 and does nothing on any other day.
+       Preview a day with ?diwali=2026-11-08 (or ...T17:59:40 to watch the countdown end), off with ?diwali=off. -->
+  <script type="module" src="js/diwali.js?v=20261026a"></script>
+
+  <!-- Diwali: effects and sound switches -->
+  <button type="button" class="dw-fxbtn dw-only" id="dwFxBtn" aria-label="Festive effects and sound" aria-expanded="false" aria-controls="dwFxPanel"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i></button>
+  <div class="dw-fxpanel dw-only" id="dwFxPanel" role="group" aria-label="Festive effects">
+    <h4>Festive effects</h4>
+    <div class="dw-fxrow">
+      <div><strong>Lights &amp; sparkles</strong><small>Fireworks, lanterns, sparkles that follow your cursor</small></div>
+      <button type="button" class="dw-switch" id="dwFxSwitch" role="switch" aria-checked="true" aria-label="Lights and sparkles"></button>
+    </div>
+    <div class="dw-fxrow">
+      <div><strong>Sound</strong><small>Soft chimes and crackers when you tap</small></div>
+      <button type="button" class="dw-switch" id="dwSoundSwitch" role="switch" aria-checked="false" aria-label="Sound"></button>
+    </div>
+  </div>
+
+  <!-- Diwali: "this service is paused" window (opened by js/diwali.js) -->
+  <div class="dw-dialog dw-only" id="dwDialog" role="dialog" aria-modal="true" aria-labelledby="dwDlgTitle" aria-hidden="true">
+    <div class="dw-card">
+      <button type="button" class="dw-x-btn" data-dw-close aria-label="Close"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+      <div class="dw-card-head">
+        <div class="dw-notice-flame" data-art="flame" aria-hidden="true"></div>
+        <p>Festive season</p>
+        <h3 id="dwDlgTitle">Paused for Diwali</h3>
+      </div>
+      <div class="dw-card-body">
+        <p id="dwDlgText">We are not accepting bookings for small cleaning services right now.</p>
+        <p class="dw-thanks dw-script">Thank you for your understanding.</p>
+        <div class="dw-card-btns">
+          <button type="button" class="btn dw-gold-btn btn-lg" data-dw-close data-book="home"><i class="fa-solid fa-broom" aria-hidden="true"></i> Book Full House Cleaning</button>
+          <button type="button" class="btn btn-outline" data-dw-close>Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- ── AUTH MODAL (Login) ── -->
   <div class="mnu-modal" id="authModal" role="dialog" aria-label="Login">

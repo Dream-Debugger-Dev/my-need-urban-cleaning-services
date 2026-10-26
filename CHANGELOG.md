@@ -6,6 +6,54 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [1.7.0] — 2026-10-26
+
+### Added
+- **Diwali 2026 theme for the home page**, on from 20 Oct to 11 Nov 2026 and
+  gone by itself after that (nothing to switch off)
+  - a night-sky hero with hanging lanterns, drifting sky lanterns, a turning
+    rangoli, fireworks, embers and falling marigold petals; fairy lights under
+    the header; a "Happy Diwali" bar; gold buttons and amber accents in every
+    section; marigold garlands between sections and a row of diyas above the
+    footer
+  - **Countdown to Diwali** (Sunday 8 Nov, 6 pm India time) with Dhanteras,
+    Choti Diwali and Diwali chips. At zero it turns into "Happy Diwali!" with a
+    fireworks finale
+  - **Five diyas to light** on the countdown band; light all five for a
+    fireworks finale
+  - **The festive-season notice** from the poster, and the **Full House
+    Cleaning Package** with its eight areas
+  - **Festival photos** in a section of their own, credited in the footer and
+    in `assets/images/diwali/CREDITS.md`. "Our Work" is still only our own jobs
+  - **Diwali greeting card**: 1080 × 1350, optional name, English, Telugu and
+    Hindi. Drawn in the visitor's browser; nothing is uploaded
+  - a lit-diya mouse cursor, a sparkle trail and tap bursts on computers, an
+    optional soft sound, and a ✨ button that switches the effects off and
+    remembers it. Visitors who ask their device for less motion get a calm
+    version with nothing moving
+- **Small services are paused for the season**: Bathroom, Sofa and Carpet
+  cleaning cannot be booked. The service cards, the category list, search,
+  links and the footer all show a friendly "paused for the festive season"
+  window with a button to the full-house clean, and no OTP is sent. Searching
+  "balcony" or "single room" explains they are paused. Everything else
+  (mattress, floor, kitchen, office, villa, commercial, new interior) is still
+  bookable
+- Preview any day with `?diwali=2026-11-08` (add `T17:59:50` to watch the
+  countdown end). `?diwali=off` shows the normal page
+
+### Changed
+- The Navratri · Bathukamma · Dasara layer is removed; its season is over
+
+### Good to know
+- The dates and the paused list live in one place: `js/diwali-boot.js`
+- The pause is enforced on the website only. A phone call, or a page that was
+  already open before 20 Oct, can still reach the team
+- To remove the theme for good, see the note at the top of `<body>` in
+  `index.html` and the "Seasonal theme" section of `WORKING.md`
+- Cache version moved to `20261026a`
+
+---
+
 ## [1.6.0] — 2026-10-20
 
 ### Changed

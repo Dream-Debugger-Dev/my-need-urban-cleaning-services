@@ -75,6 +75,27 @@ cd app/
 flutter run -d chrome
 ```
 
+## Seasonal theme (Diwali 2026)
+
+The home page dresses up for Diwali from 20 Oct to 11 Nov 2026 and goes back to
+normal by itself. Small services (Bathroom, Sofa, Carpet) are paused for the same
+dates.
+
+- **Dates and paused services**: `js/diwali-boot.js` is the only place (`SEASON`,
+  `DIWALI_AT`, `STAGES`, `PAUSE`). To extend the season change `SEASON.to` and
+  `PAUSE.to`. Paused ids are the booking catalog's top-level ids in
+  `js/booking.js` (`bathroom`, `sofa`, `carpet`). Remove an id to reopen it.
+  The notice text in `index.html` must be changed to match
+- **Preview**: `/?diwali=2026-11-08`, `/?diwali=2026-11-08T17:59:50` (the clock
+  keeps running, so you can watch the countdown end), `/?diwali=off`
+- **Pieces**: `css/diwali.css`, `js/diwali.js` (the page), `js/diwali-fx.js`
+  (fireworks and sound, loaded only when effects are on), `js/diwali-card.js`
+  (greeting card, loaded on demand), `js/diwali-art.js`, `js/festive-pause.js`
+  (read by `js/booking.js`), photos and their credits in `assets/images/diwali/`
+- **Remove for good**: delete the `.dw-only` blocks in `index.html`, the
+  `css/diwali.css` link and the `diwali-boot.js` / `diwali.js` tags, then the
+  files above, and the pause hooks in `js/booking.js` (search for `festivePaused`)
+
 ## Security Protocols
 
 1. **Never commit secrets** — All API keys, Firebase configs, and credentials go in `.env` files (gitignored)

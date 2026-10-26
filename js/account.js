@@ -11,10 +11,10 @@ import {
   auth, db, onAuthStateChanged, signOut,
   collection, query, where, limit, onSnapshot,
   doc, getDoc, setDoc, updateDoc, serverTimestamp,
-} from './firebase-config.js?v=20261020a';
+} from './firebase-config.js?v=20261026a';
 import {
   identity, fmtMobile, mountPhoneVerify, addEmailLogin, sendEmailVerificationLink, refreshIdentity, cancelPhone,
-} from './identity.js?v=20261020a';
+} from './identity.js?v=20261026a';
 
 // Refuse to run inside another website's frame (clickjacking). Same-site frames are fine.
 if (window.top !== window.self) {
